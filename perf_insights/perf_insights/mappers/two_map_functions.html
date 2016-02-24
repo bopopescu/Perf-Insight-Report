@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+
+<link rel="import" href="/perf_insights/function_handle.html">
+<link rel="import" href="/perf_insights/mappers/touch_start_map_function.html">
+<link rel="import" href="/perf_insights/mappers/handling_time_map_function.html">
+
+<script>
+'use strict';
+
+tr.exportTo('pi.m', function() {
+  function mergeTwoMapsFunction(result, model) {
+	var handlingTime = pi.m.handlingTimeMapFunction(model);
+	var queuingTime = pi.m.queuingTimeMapFunction(model);
+	result.addPair('handling_self_time', handlingTime);  
+	result.addPair('queuing_self_time', queuingTime);  	
+  }
+
+  pi.FunctionRegistry.register(mergeTwoMapsFunction);
+
+  return {
+    touchStartMapFunctionForTest: mergeTwoMapsFunction
+  };
+});
+</script>

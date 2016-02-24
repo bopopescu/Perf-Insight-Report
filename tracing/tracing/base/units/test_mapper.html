@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+
+<link rel="import" href="/perf_insights/function_handle.html">
+<link rel="import" href="/perf_insights/mappers/thread_grouping.html">
+<link rel="import" href="/perf_insights/value/value.html">
+<link rel="import" href="/tracing/base/range.html">
+<link rel="import" href="/tracing/base/units/histogram.html">
+<link rel="import" href="/tracing/base/units/units.html">
+
+<script>
+'use strict';
+
+tr.exportTo('pi.m', function() {
+  function myMapFunction(results, run_info, model) {
+    var threadGrouping = new pi.m.ThreadGrouping();
+    threadGrouping.autoInitUsingHelpers(model);
+    function createHistogram() {
+      return tr.b.u.Histogram.createLinear(tr.b.u.Units.timeDurationInMs,
+          tr.b.Range.fromExplicitRange(0, 10), 10);
+    }
+    var myDict = {
+      'Browser': createHistogram(),
+      'Renderer': createHistogram(),
+	  'GPU': createHistogram(),	
+      'Other': createHistogram(),
+	  'Notknown': createHistogram(),	
+	};
+    model.getAllThreads().forEach(function(thread) {
+      thread.sliceGroup.slices.forEach(function(slice) {
+        var groupName = threadGrouping.getGroupNameForEvent(slice);
+		if (['Browser', 'Renderer', 'GPU', 'Other'].indexOf(groupName) >= 0)
+          myDict[groupName].add(slice.selfTime);
+		else {
+		  console.log(groupName);
+		  myDict['Notknown'].add(slice.selfTime);
+		}		  
+      });
+    });
+    for (var key in myDict)
+      myDict[key] = myDict[key].asDict();
+    results.addValue(new pi.v.DictValue(run_info, 'self_time', myDict));
+  }
+
+  pi.FunctionRegistry.register(myMapFunction);
+
+  // Exporting for tests.
+  return {
+    myMapFunctionForTest: myMapFunction
+  };
+});
+</script>
+

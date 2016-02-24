@@ -1,0 +1,125 @@
+<!DOCTYPE HTML>
+
+<link rel="import" href="/perf_insights/function_handle.html">
+<link rel="import" href="/perf_insights/mappers/thread_grouping.html">
+<link rel="import" href="/tracing/base/range.html">
+<link rel="import" href="/tracing/value/histogram.html">
+<link rel="import" href="/tracing/value/unit.html">
+
+<script>
+'use strict';
+
+tr.exportTo('pi.m', function() {
+	
+  function getAllSlices(thread, name) {  
+  	var result = [];
+	thread.asyncSliceGroup.slices.forEach(function(slice) {
+      if (slice.title.indexOf(name) > -1) {
+		result.push(slice);
+	  }
+	});
+	return result;
+  }
+  
+  function getClosestTouchStart(touchStarts, time) {
+	for (var i = 1; i < touchStarts.length; i++) {
+	  if (touchStarts[i].start > time)
+		  return touchStarts[i-1];
+	}
+	return touchStarts[touchStarts.length-1];
+  } 
+  	
+	
+  function getHandlingTime(model, id, duration) {
+  	var handlers = {};
+    model.flowEvents.forEach(function(flow) {
+	    // Follow the FlowEvent whichs connects the touchmove and EventHandler.
+		if (flow.args.trace_id == id) {
+		  var flowEvent = flow.endSlice.outFlowEvents[0];
+		  var flag = true;
+			while (flag && flowEvent!=null && flowEvent.endSlice!=null) {
+			  for (var i = 0; flowEvent.endSlice!=null && i < flowEvent.endSlice.subSlices.length; i++) {
+				// Start to process EventHandler and keep its selftime and its following events' selftime.
+				if (flowEvent.endSlice.subSlices[i].title.indexOf('WebViewImpl::handleInputEvent') > -1 &&
+					flowEvent.endSlice.subSlices[i].subSlices[0].title.indexOf('EventHandler::handleTouchEvent') > -1) {
+				  flag = false;
+				  var eventHandler = flowEvent.endSlice.subSlices[i].subSlices[0];
+				  var slices = [eventHandler];
+				  while (slices.length > 0) {
+					eventHandler = slices[0];
+					if (eventHandler.title in handlers) {
+					  handlers[eventHandler.title] += eventHandler.selfTime;
+					} else {
+					  handlers[eventHandler.title] = eventHandler.selfTime;
+					}
+					slices.splice(0, 1);
+					for (var k = 0; k < eventHandler.subSlices.length; k++) {
+					  slices.push(eventHandler.subSlices[k]);
+					}
+			      }        
+				}   
+			  }
+			  flowEvent = flowEvent.endSlice.outFlowEvents[0];
+			}
+		  }
+	  });
+	  var value = {
+		duration: duration,
+		selfTime: handlers
+	  };
+	  return value; 
+    }
+	
+  function handlingTimeMapFunction(model) {
+  	var touchStartTime = {};
+  	var touchMoveTime = {};
+  	model.getAllThreads().forEach(function(thread) {
+      var gestureScrollBegins = getAllSlices(thread, 'InputLatency::GestureScrollBegin');
+  	  var touchMoves = getAllSlices(thread, 'InputLatency::TouchMove');
+  	  var touchStarts = getAllSlices(thread, 'InputLatency::TouchStart');
+  	  touchStarts.sort(function(a, b) {return a.start-b.start}); 
+  	  for (var i = 0; i < gestureScrollBegins.length; i++) {
+  		console.log(gestureScrollBegins[i].title + ' ' + gestureScrollBegins[i].start);
+  		for (var j = 0; j < touchMoves.length; j++) {
+  	  	  if (gestureScrollBegins[i].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time == touchMoves[j].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time) {
+  			console.log(touchMoves[j].title + ' ' + touchMoves[j].start);
+  			touchMoveTime[touchMoves[j].args.data.trace_id] = touchMoves[j].duration;
+  			var touchstart = getClosestTouchStart(touchStarts, touchMoves[j].start);
+	  		touchStartTime[touchstart.args.data.trace_id] = touchstart.duration;
+	  	    console.log(touchstart.title + ' ' + touchstart.start);
+  		  }
+  		}
+	  }
+  	});
+	
+  	// Get the longest 10% touch moves 
+	// var idSorted = Object.keys(touchMoveTime).sort(function(a,b){return touchMoveTime[b]-touchMoveTime[a]});
+	// var longestTouchMove = idSorted.slice(0, Math.ceil(idSorted.length/1));
+	// console.log(longestTouchMove);
+	var touchStartHandlings = [];
+	for (var id in touchStartTime) {
+		var starts = getHandlingTime(model, id, touchStartTime[id]);
+		if (Object.keys(starts.selfTime).length > 0)
+		  touchStartHandlings.push(starts);
+	}
+	var touchMoveHandlings = [];
+	for (var id in touchMoveTime) {
+		var moves = getHandlingTime(model, id, touchMoveTime[id]);
+		if (Object.keys(moves.selfTime).length > 0)
+           touchMoveHandlings.push(moves);
+	}
+	
+	 var value = {
+	   touchStartHandlings: touchStartHandlings,
+	   touchMoveHandlings: touchMoveHandlings
+	 };
+	 return value;
+	    
+  }
+
+  return {
+    handlingTimeMapFunction: handlingTimeMapFunction
+  };
+});
+</script>
+

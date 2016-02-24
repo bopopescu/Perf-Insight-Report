@@ -1,0 +1,110 @@
+<!DOCTYPE HTML>
+
+<link rel="import" href="/perf_insights/function_handle.html">
+<link rel="import" href="/perf_insights/mappers/thread_grouping.html">
+<link rel="import" href="/tracing/base/range.html">
+<link rel="import" href="/tracing/value/histogram.html">
+<link rel="import" href="/tracing/value/unit.html">
+
+<script>
+'use strict';
+
+tr.exportTo('pi.m', function() {
+
+    function getAllSlices(thread, name) {  
+      var result = [];
+  	  thread.asyncSliceGroup.slices.forEach(function(slice) {
+        if (slice.title.indexOf(name) > -1) {
+  		  result.push(slice);
+  	    }
+  	  });
+  	  return result;
+    }
+	
+    function getQueuingTime(model) {
+	  var touchMoveTimes = [];
+	  var webviewTimes = [];
+	  model.getAllThreads().forEach(function(thread) {
+	    var gestureScrollBegins = getAllSlices(thread, 'InputLatency::GestureScrollBegin');
+	  	var touchMoves = getAllSlices(thread, 'InputLatency::TouchMove');
+		for (var i = 0; i < gestureScrollBegins.length; i++) {
+    	  console.log(gestureScrollBegins[i].title + ' ' + gestureScrollBegins[i].start);
+    	  for (var j = 0; j < touchMoves.length; j++) {
+    	  	if (gestureScrollBegins[i].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time == touchMoves[j].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time) {
+	  		  var touchMoveSent = touchMoves[j].args.data.INPUT_EVENT_LATENCY_BEGIN_RWH_COMPONENT.time;
+			  var forwardToRendererMoveTime = model.convertTimestampToModelTime('traceEventClock', touchMoveSent);
+			  model.flowEvents.forEach(function(flow) {
+			      // Follow the FlowEvent whichs connects the touchmove and EventHandler. 
+				  if (flow.args.trace_id == touchMoves[j].args.data.trace_id) {
+					var flowEvent = flow.endSlice.outFlowEvents[0];
+					var flag = true;
+					while (flag && flowEvent != null) {
+					  for (var i = 0; i < flowEvent.endSlice.subSlices.length; i++) {
+						// Start to process EventHandler and keep its selftime and its following events' selftime.
+						if (flowEvent.endSlice.subSlices[i].title.indexOf('WebViewImpl::handleInputEvent') > -1) {
+						  flag = false;
+						  var webview = flowEvent.endSlice.subSlices[i];
+						  touchMoveTimes.push(forwardToRendererMoveTime);
+						  webviewTimes.push(webview);
+						  console.log(webview.title + ' ' + webview.start);	
+						}
+					  }
+					  flowEvent = flowEvent.endSlice.outFlowEvents[0];
+					}
+				  }
+				});
+			  }
+			}
+		  }
+		});
+
+		// var idSorted = Object.keys(queuingTime).sort(function(a, b) {
+// 			return queuingTime[b] - queuingTime[a]
+// 		});
+// 		var longestIds = idSorted.slice(0, Math.ceil(idSorted.length/1));
+// 		var longestTouchStarts = [];
+// 		var longestWebViews = [];
+// 		for (var index = 0; index < longestIds.length; index++) {
+// 			longestTouchStarts.push(touchStarts[longestIds[index]]);
+// 			longestWebViews.push(webviews[longestIds[index]]);
+// 		}
+		var data = {
+			touchMoveTimes: touchMoveTimes,
+			webviewTimes: webviewTimes
+		};
+		return data;
+	}
+
+	function queuingTimeMapFunction(model) {
+		var data = getQueuingTime(model);
+		var queuingTime = [];
+		for	(var i = 0; i < data.webviewTimes.length; i++) {
+			// Find a renderer thread
+			var renderMainThread = data.webviewTimes[i].parentContainer;
+			console.log(' renderMainThread ' + renderMainThread.name + '   ' + renderMainThread.tid);
+			var handlers = {};
+			renderMainThread.sliceGroup.slices.forEach(function(slice) {
+				var sliceEndTime = slice.start + slice.duration;
+				if (sliceEndTime > data.touchMoveTimes[i] && sliceEndTime <= data.webviewTimes[i].start) {
+					if (slice.title in handlers) {
+						handlers[slice.title] += slice.selfTime;
+					} else {
+						handlers[slice.title] = slice.selfTime;
+					}
+				}
+
+			});
+	  	    var value = {
+	  		  duration: data.webviewTimes[i].start - data.touchMoveTimes[i],
+			  selfTime: handlers
+	  	    };
+			queuingTime.push(value);
+		}
+	    return queuingTime;
+	}
+
+	return {
+		queuingTimeMapFunction: queuingTimeMapFunction
+	};
+}); 
+</script>

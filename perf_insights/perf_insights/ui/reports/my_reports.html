@@ -1,0 +1,120 @@
+<!DOCTYPE HTML>
+<link rel="import" href="/perf_insights/ui/reports/pi_report.html">
+<link rel="import" href="/tracing/ui/units/histogram_span.html">
+<link rel="import" href="/tracing/ui/base/pie_chart.html">
+
+<polymer-element name="pi-ui-r-my-report"
+    extends="pi-ui-r-pi-report"
+    map-function-href="/perf_insights/mappers/test_mapper.html"
+    map-function-name="myMapFunction">
+  <template>
+    <pre><span id="data"></span></pre>
+	<tr-ui-u-histogram-span id="browser"></tr-ui-u-histogram-span>
+    <tr-ui-u-histogram-span id="renderer"></tr-ui-u-histogram-span>
+    <tr-ui-u-histogram-span id="other"></tr-ui-u-histogram-span>
+	<tr-ui-b-table id="table"></tr-ui-b-table>
+	<span id="chart"></span>
+  </template>
+  <script>
+  'use strict';
+
+  Polymer({
+    created: function() {
+      this.mapResults_ = undefined;
+    },
+    get mapResults() {
+      return this.mapResults_;
+    },
+    set mapResults(mapResults) {
+      this.mapResults_ = mapResults;
+      this.updateContents_();
+    },
+
+	updateContents_: function() {
+		  // this.$.data.textContent = JSON.stringify(this.mapResults_, null, 't');
+	      var histograms = {};
+		  var msg;
+	      var table = this.$.table;
+		  console.log('updateContents is called.')
+
+	      var columns = this.createColumns_();
+	      table.tableColumns = columns;
+	      table.sortColumnIndex = 1;
+	      table.sortDescending = true;
+		  
+		  var allCategory = {};
+		  var chart = new tr.ui.b.PieChart();
+	      chart.width = 400;
+ 	      chart.height = 300;
+		  chart.chartTitle = 'Chart title';
+	      var data = [
+		    {label: 'a', value: 100},
+		    {label: 'b', value: 200},
+            {label: 'c', value: 300}
+	      ];
+	    chart.data = data;
+		this.$.chart.appendChild(chart);  // .appendChild(chart);
+		
+			  
+	      this.mapResults_.allValuesFromFailureFreeRuns.forEach(function(result) {
+	        for (var process in result.value) {
+				msg += process + '   ' + result.value[process].centralBins[0].count;
+			  var histogram = tr.b.u.Histogram.fromDict(result.value[process]);
+	          if (histograms[process]) {
+	          	histogram[process].addHistogram(histogram);
+			    allCategory[process] += result.value[process].centralBins[0].count;
+	          } else {
+	          	histograms[process] = histogram;
+				allCategory[process] = result.value[process].centralBins[0].count;
+	          }
+	            
+	        }
+	      });
+		  // this.$.data.textContent += msg;	
+          
+		  this.$.browser.histogram = histograms['Browser'];
+          this.$.renderer.histogram = histograms['Renderer'];
+		  this.$.other.histogram = histograms['Other'];
+		  
+		  var categoryRows = [];
+	      for (var category in allCategory) {
+	        categoryRows.push({
+	          title: category,
+	          count: allCategory[category]
+	        });
+
+	      }
+	      table.tableRows = categoryRows;
+	      table.rebuild();
+
+	    }, 
+		createColumns_: function() {
+          var columns = [
+      {
+        title: 'Title',
+        value: function(row) {
+          return row.title;
+        },
+        textAlign: 'left',
+        width: '400px'
+      },
+      {
+        title: 'Total Event Count',
+        value: function(row) {
+          return row.count;
+        },
+        cmp: function(a, b) {
+          return tr.b.compareNumericWithNaNs(a.count, b.count);
+        },
+        textAlign: 'left',
+        width: '100px'
+      }
+    ];
+    return columns;
+    }
+	
+  });
+  
+  
+  </script>
+</polymer-element>

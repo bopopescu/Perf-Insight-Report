@@ -1,0 +1,112 @@
+<!DOCTYPE HTML>
+<link rel="import" href="/perf_insights/ui/reports/pi_report.html">
+<link rel="import" href="/tracing/ui/units/histogram_span.html">
+<link rel="import" href="/tracing/ui/base/pie_chart.html">
+
+<polymer-element name="pi-ui-r-my-input-event-report"
+    extends="pi-ui-r-pi-report"
+    map-function-href="/perf_insights/mappers/my_map_function.html"
+    map-function-name="myMapFunction">
+  <template>
+    <pre><span id="data"></span></pre>
+	<tr-ui-b-table id="table"></tr-ui-b-table>
+	<div id="chart" style="height:625px;width:1625px;"></div>
+  </template>
+  <script>
+  'use strict';
+
+  Polymer({
+    created: function() {
+      this.mapResults_ = undefined;
+    },
+    get mapResults() {
+      return this.mapResults_;
+    },
+    set mapResults(mapResults) {
+      this.mapResults_ = mapResults;
+      this.updateContents_();
+    },
+
+	updateContents_: function() {
+		  //  this.$.data.textContent = JSON.stringify(this.mapResults_, null, ' ');
+	      var table = this.$.table;
+		  
+	      var columns = this.createColumns_();
+	      table.tableColumns = columns;
+	      table.sortColumnIndex = 1;
+	      table.sortDescending = true;
+		  
+		  var allEvents = {};
+		  	  
+		  var count = 0;	
+		  this.mapResults_.forEach(function(result) {
+			var data = result.pairs.self_time;
+			if (Object.keys(data).length)
+				count++;
+	        for (var process in data) {
+				if (process in allEvents) {
+					allEvents[process] += data[process];
+				} else {
+					allEvents[process] = data[process];
+				}
+			}
+	      });
+		  
+		  var chart = new tr.ui.b.PieChart();
+	      chart.width = 1000;
+ 	      chart.height = 400;
+		  chart.chartTitle = 'Events\' self-time';
+	      var data = [];
+		  
+		  for (var event in allEvents) {
+	        data.push({
+	          label: event,
+	          value: allEvents[event]/count
+	        });
+	      }
+		  
+	      chart.data = data;
+		  this.$.chart.appendChild(chart);
+		  
+		  var eventRows = [];
+	      for (var event in allEvents) {
+	        eventRows.push({
+	          title: event,
+	          count: allEvents[event]/count
+	        });
+
+	      }
+	      table.tableRows = eventRows;
+	      table.rebuild();
+
+	    }, 
+		createColumns_: function() {
+          var columns = [
+      {
+        title: 'Event\'s Title',
+        value: function(row) {
+          return row.title;
+        },
+        textAlign: 'left',
+        width: '400px'
+      },
+      {
+        title: 'Event\'s SelfTime',
+        value: function(row) {
+          return row.count;
+        },
+        cmp: function(a, b) {
+          return tr.b.compareNumericWithNaNs(a.count, b.count);
+        },
+        textAlign: 'left',
+        width: '100px'
+      }
+    ];
+    return columns;
+    }
+	
+  });
+  
+  
+  </script>
+</polymer-element>

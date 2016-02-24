@@ -1,0 +1,115 @@
+<!DOCTYPE HTML>
+
+<link rel="import" href="/perf_insights/function_handle.html">
+<link rel="import" href="/perf_insights/mappers/thread_grouping.html">
+<link rel="import" href="/tracing/base/range.html">
+<link rel="import" href="/tracing/value/histogram.html">
+<link rel="import" href="/tracing/value/unit.html">
+
+<script>
+'use strict';
+
+tr.exportTo('pi.m', function() {
+  function getLongestTouchMoves(model) {
+	var touchMoveTime = {};
+	model.getAllThreads().forEach(function(thread) {
+      thread.asyncSliceGroup.slices.forEach(function(gestureSlice) { 
+  		if (gestureSlice.title.indexOf('InputLatency::GestureScrollUpdate') > -1) {
+  		  thread.asyncSliceGroup.slices.forEach(function(touchSlice) {
+  		    if (touchSlice.title.indexOf('InputLatency::TouchMove') > -1) {
+  		      if (gestureSlice.args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time == touchSlice.args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time) {
+				touchMoveTime[touchSlice.args.data.trace_id] = touchSlice.duration;
+			  }
+		    }
+		  });
+		}
+	  });
+	});
+	
+	var idSorted = Object.keys(touchMoveTime).sort(function(a,b){return touchMoveTime[b]-touchMoveTime[a]});
+	// console.log(idSorted.length + '   ' + idSorted.length/10);
+	var longestTouchMove = idSorted.slice(0, Math.ceil(idSorted.length/1));
+	// console.log(longestTouchMove);
+	return longestTouchMove;
+  }	
+	
+  function myMapFunction(model) {
+	var longestTouchMove = getLongestTouchMoves(model);
+    var handlers = {};
+    var count = 0;
+	// var histogram = tr.v.Histogram.createLinear(
+//         tr.v.Unit.byName.unitlessNumber,
+//         tr.b.Range.fromExplicitRange(0, 50),
+//         20);
+	var v8ExcuteTimes = [];	
+	for	(var index = 0; index < longestTouchMove.length; index++) {
+	  model.flowEvents.forEach(function(flowEvent) {
+		    // Follow the FlowEvent whichs connects the touchmove and EventHandler. 
+			if (flowEvent.args.trace_id == longestTouchMove[index]) {
+			  // console.log(flowEvent.title + '   ' + flowEvent.endSlice.outFlowEvents.length + '   ' + flowEvent.startSlice.title + '   ' + flowEvent.endSlice.title + '    ' + flowEvent.args.trace_id);
+			  var flowEvent1 = flowEvent.endSlice.outFlowEvents[0];
+			  var flag = true;
+			  while (flag && flowEvent1!=null && flowEvent1.endSlice!=null) {
+				  // console.log(flowEvent1.title + '   ' +  flowEvent1.endSlice.subSlices.length + '   ' + flowEvent.args.trace_id);
+				  for (var i = 0; flowEvent1.endSlice!=null && i < flowEvent1.endSlice.subSlices.length; i++) {
+					  // Start to process EventHandler and keep its selftime and its following events' selftime.
+				      if (flowEvent1.endSlice.subSlices[i].title.indexOf('WebViewImpl::handleInputEvent') > -1 &&
+					      flowEvent1.endSlice.subSlices[i].subSlices[0].title.indexOf('EventHandler::handleTouchEvent') > -1) {
+					  	flag = false;
+						var eventHandler = flowEvent1.endSlice.subSlices[i].subSlices[0];
+				        var slices = [eventHandler];
+						count++;
+						var v8ExcuteTime = 0;
+						while (slices.length > 0) {
+							eventHandler = slices[0];
+							if (eventHandler.title.indexOf('V8.Execute') > -1)	{
+								v8ExcuteTime += eventHandler.selfTime;
+							}
+								
+							if (eventHandler.title in handlers) {
+								handlers[eventHandler.title] += eventHandler.selfTime;
+							} else {
+								handlers[eventHandler.title] = eventHandler.selfTime;
+							}
+							slices.splice(0, 1);
+							for (var k = 0; k < eventHandler.subSlices.length; k++) {
+								slices.push(eventHandler.subSlices[k]);
+							}
+						}
+						v8ExcuteTimes.push(v8ExcuteTime);
+					 }										  
+				  }
+				  flowEvent1 = flowEvent1.endSlice.outFlowEvents[0];
+			  }							  
+			}							  
+		});	
+		
+	}
+			
+    // var keysSorted = Object.keys(handlers).sort(function(a,b){return handlers[a]-handlers[b]})
+	// console.log('count ' + count + '   ' + hcount); 
+	// console.log('count   ' +  count);	
+	// for	(var index = 0; index < keysSorted.length; index++) {
+//       handlers[keysSorted[index]] = handlers[keysSorted[index]];
+// 	  console.log(keysSorted[index] + ' | ' + handlers[keysSorted[index]]);
+// 	}
+	var value = {
+	  selfTime: handlers,
+	  V8Excute: v8ExcuteTimes,
+	  count: count
+	};
+	
+	return value;
+	//result.addPair('self_time', handlers);
+    
+  }
+
+  // pi.FunctionRegistry.register(myMapFunction);
+
+  // Exporting for tests.
+  return {
+    myMapFunction: myMapFunction
+  };
+});
+</script>
+

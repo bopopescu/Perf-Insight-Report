@@ -1,0 +1,198 @@
+<!DOCTYPE HTML>
+<link rel="import" href="/perf_insights/ui/reports/pi_report.html">
+<link rel="import" href="/tracing/ui/units/histogram_span.html">
+<link rel="import" href="/tracing/ui/base/pie_chart.html">
+
+<polymer-element name="pi-ui-r-my-two-input-event-report"
+    extends="pi-ui-r-pi-report"
+    map-function-href="/perf_insights/mappers/two_map_functions.html"
+    map-function-name="mergeTwoMapsFunction">
+  <template>
+    <pre><span id="data"></span></pre>
+	<tr-ui-b-table id="handling_start_table"></tr-ui-b-table>
+	<tr-ui-b-table id="handling_move_table"></tr-ui-b-table>
+	<tr-ui-b-table id="handling_start_v8_table"></tr-ui-b-table>
+	<tr-ui-b-table id="handling_move_v8_table"></tr-ui-b-table>
+	<div id="chart" style="height:625px;width:1625px;"></div>
+  </template>
+  <script>
+  'use strict';
+  
+  function createColumns(msg) {
+    var columns = [
+    {
+      title: msg + ' Event\'s Title',
+      value: function(row) {
+        return row.title;
+      },
+      textAlign: 'left',
+      width: '400px'
+    },
+    {
+      title: msg + 'Event\'s SelfTime',
+      value: function(row) {
+        return row.count;
+      },
+      cmp: function(a, b) {
+        return tr.b.compareNumericWithNaNs(a.count, b.count);
+      },
+      textAlign: 'left',
+      width: '100px'
+    }
+    ];
+    return columns;
+  }
+
+  function drawTable(allEvents, table, count, msg) {
+    var columns = createColumns(msg);
+    table.tableColumns = columns;
+    table.sortColumnIndex = 1;
+    table.sortDescending = true;
+	
+	var eventRows = [];
+    for (var event in allEvents) {
+		//if (allEvents[event] > 0) {
+	        eventRows.push({
+	          title: event,
+	          count: allEvents[event]/count
+	        });	
+			//}       
+    }
+    table.tableRows = eventRows;
+    table.rebuild();
+
+  }
+  
+  function getLongestTimes(results, percent) {
+	var handlingStartTimes = [];
+	var handlingMoveTimes = [];
+	results.forEach(function(result) {
+	  handlingStartTimes = handlingStartTimes.concat(result.pairs.handling_self_time.touchStartHandlings);
+	  handlingMoveTimes = handlingMoveTimes.concat(result.pairs.handling_self_time.touchMoveHandlings);
+	});
+	
+	handlingStartTimes.sort(function(a, b) {return a.duration-b.duration});
+	var longestTouchStarts = handlingStartTimes.slice(0, Math.ceil(handlingStartTimes.length/percent));
+	handlingMoveTimes.sort(function(a, b) {return a.duration-b.duration});
+	var longestTouchMoves = handlingMoveTimes.slice(0, Math.ceil(handlingMoveTimes.length/percent));
+	var startHandlers = {};
+	var moveHandlers = {};
+	var v8ExcuteStart = [];
+	var v8ExcuteMove = [];
+	
+	for (var i = 0; i < longestTouchStarts.length; i++) {
+		for (var key in longestTouchStarts[i].selfTime) {
+			if (key in startHandlers) {
+			  startHandlers[key] += longestTouchStarts[i].selfTime[key];
+			} else {
+			  startHandlers[key] = longestTouchStarts[i].selfTime[key];
+			}
+			if (key.indexOf('V8.Execute') > -1)
+				v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
+		}
+		
+	}
+	for (var i = 0; i < longestTouchMoves.length; i++) {
+		for (var key in longestTouchMoves[i].selfTime) {
+			if (key in moveHandlers) {
+			  moveHandlers[key] += longestTouchMoves[i].selfTime[key];
+			} else {
+			  moveHandlers[key] = longestTouchMoves[i].selfTime[key];
+			}
+			if (key.indexOf('V8.Execute') > -1)
+				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
+		}
+		
+	}
+	
+    var value = {
+	  startCount: longestTouchStarts.length,
+	  moveCount: longestTouchMoves.length,
+	  startHandlers: startHandlers,
+      moveHandlers: moveHandlers,
+	  v8ExcuteStart: v8ExcuteStart,
+	  v8ExcuteMove: v8ExcuteMove	
+    };
+    return value;
+  }
+  
+    Polymer({
+    created: function() {
+      this.mapResults_ = undefined;
+    },
+    get mapResults() {
+      return this.mapResults_;
+    },
+    set mapResults(mapResults) {
+      this.mapResults_ = mapResults;
+      this.updateContents_();
+    },
+
+	updateContents_: function() {
+		  this.$.data.textContent = JSON.stringify(this.mapResults_, null, 't');
+	      var handling_start_table = this.$.handling_start_table;
+		  var handling_move_table = this.$.handling_move_table;
+	      var handling_start_v8_table = this.$.handling_start_v8_table;
+		  var handling_move_v8_table = this.$.handling_move_v8_table;
+		  
+	      var handlingAllEvents = {};
+		  var waitingAllEvents = {};
+	      var excuteCount = 0; 
+		  var waitingCount = 0;  
+	      var excuteV8Events = [];
+		  var waitingV8Events = [];
+		  
+		  var msg = '';
+		  //this.mapResults_.forEach(function(result) {
+		  var value = getLongestTimes(this.mapResults_, 1);
+			
+			// Draw the blocking events self time table.
+			// var waiting_data = result.pairs.wait_self_time.selfTime;
+// 			waitingCount += result.pairs.wait_self_time.count;
+// 	        for (var process in waiting_data) {
+// 				if (process in waitingAllEvents) {
+// 					waitingAllEvents[process] += waiting_data[process];
+// 				} else {
+// 					waitingAllEvents[process] = waiting_data[process];
+// 				}
+// 			}
+// 			msg += excuteV8Events.length + ' ';
+// 			excuteV8Events = excuteV8Events.concat(result.pairs.excute_self_time.V8Excute);
+// 			waitingV8Events = waitingV8Events.concat(result.pairs.wait_self_time.V8Excute);
+//		  });
+		  
+		  drawTable(value.startHandlers, handling_start_table, value.startCount, 'Handlering touch start');
+		  drawTable(value.moveHandlers, handling_move_table, value.moveCount, 'Handlering touch move');
+		  drawTable(value.v8ExcuteStart, handling_start_v8_table, 1, 'V8Excute in touch start');
+		  drawTable(value.v8ExcuteMove, handling_move_v8_table, 1, 'V8Excute in touch move');
+		  
+		  
+  	      //drawTable(excuteV8Events, excute_v8_table, 1, 'V8.Execute');
+		  //drawTable(waitingV8Events, waiting_v8_table, 1, 'V8.Execute');
+		  this.$.data.textContent += msg;
+		  // var chart = new tr.ui.b.PieChart();
+// 	      chart.width = 1000;
+//  	      chart.height = 400;
+// 		  chart.chartTitle = 'Events\' self-time';
+// 	      var data = [];
+//
+// 		  for (var event in allEvents) {
+// 	        data.push({
+// 	          label: event,
+// 	          value: allEvents[event]/count
+// 	        });
+// 	      }
+//
+// 	      chart.data = data;
+// 		  this.$.chart.appendChild(chart);
+ 
+    }, 
+	
+		  
+		  
+	
+  });
+  
+  
+  </script>
+</polymer-element>
