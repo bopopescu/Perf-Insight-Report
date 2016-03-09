@@ -13,6 +13,8 @@
 	<tr-ui-b-table id="handling_move_table"></tr-ui-b-table>
 	<tr-ui-b-table id="handling_start_v8_table"></tr-ui-b-table>
 	<tr-ui-b-table id="handling_move_v8_table"></tr-ui-b-table>
+	<tr-ui-b-table id="queuing_move_table"></tr-ui-b-table>
+	<tr-ui-b-table id="queuing_move_v8_table"></tr-ui-b-table>
 	<div id="chart" style="height:625px;width:1625px;"></div>
   </template>
   <script>
@@ -63,12 +65,15 @@
 
   }
   
-  function getLongestTimes(results, percent) {
+  function getLongestHandlingTimes(results, percent) {
 	var handlingStartTimes = [];
 	var handlingMoveTimes = [];
 	results.forEach(function(result) {
-	  handlingStartTimes = handlingStartTimes.concat(result.pairs.handling_self_time.touchStartHandlings);
-	  handlingMoveTimes = handlingMoveTimes.concat(result.pairs.handling_self_time.touchMoveHandlings);
+	  if (result.pairs.handling_self_time != null) {
+  	    handlingStartTimes = handlingStartTimes.concat(result.pairs.handling_self_time.touchStartHandlings);
+  	    handlingMoveTimes = handlingMoveTimes.concat(result.pairs.handling_self_time.touchMoveHandlings);
+	  }
+	    
 	});
 	
 	handlingStartTimes.sort(function(a, b) {return a.duration-b.duration});
@@ -116,6 +121,40 @@
     return value;
   }
   
+  
+  function getLongestQueuingtTimes(results, percent) {
+	var queuingMoveTimes = [];
+	results.forEach(function(result) {
+	  if (result.pairs.queuing_self_time != null)
+	    queuingMoveTimes = queuingMoveTimes.concat(result.pairs.queuing_self_time);
+	});
+	
+	queuingMoveTimes.sort(function(a, b) {return a.duration-b.duration});
+	var longestQueuing = queuingMoveTimes.slice(0, Math.ceil(queuingMoveTimes.length/percent));
+	var moveHandlers = {};
+	var v8ExcuteMove = [];
+	
+	for (var i = 0; i < longestQueuing.length; i++) {
+		for (var key in longestQueuing[i].selfTime) {
+			if (key in moveHandlers) {
+			  moveHandlers[key] += longestQueuing[i].selfTime[key];
+			} else {
+			  moveHandlers[key] = longestQueuing[i].selfTime[key];
+			}
+			if (key.indexOf('V8.Execute') > -1)
+				v8ExcuteMove.push(longestQueuing[i].selfTime[key]);
+		}
+		
+	}
+	
+    var value = {
+	  count: longestQueuing.length,
+	  moveHandlers: moveHandlers,
+	  v8ExcuteMove: v8ExcuteMove
+    };
+    return value;
+  }
+  
     Polymer({
     created: function() {
       this.mapResults_ = undefined;
@@ -129,47 +168,27 @@
     },
 
 	updateContents_: function() {
-		  this.$.data.textContent = JSON.stringify(this.mapResults_, null, 't');
+		  // this.$.data.textContent = JSON.stringify(this.mapResults_, null, 't');
 	      var handling_start_table = this.$.handling_start_table;
 		  var handling_move_table = this.$.handling_move_table;
 	      var handling_start_v8_table = this.$.handling_start_v8_table;
 		  var handling_move_v8_table = this.$.handling_move_v8_table;
+		  var queuing_move_table = this.$.queuing_move_table;
+		  var queuing_move_v8_table = this.$.queuing_move_v8_table;
 		  
-	      var handlingAllEvents = {};
-		  var waitingAllEvents = {};
-	      var excuteCount = 0; 
-		  var waitingCount = 0;  
-	      var excuteV8Events = [];
-		  var waitingV8Events = [];
+		  var percent = 10;
+	      var handlingValue = getLongestHandlingTimes(this.mapResults_, percent);
+		  var queuingValue = getLongestQueuingtTimes(this.mapResults_, percent);
+					  
+		  drawTable(handlingValue.startHandlers, handling_start_table, handlingValue.startCount, 'Handlering touch start');
+		  drawTable(handlingValue.moveHandlers, handling_move_table, handlingValue.moveCount, 'Handlering touch move');
+		  drawTable(handlingValue.v8ExcuteStart, handling_start_v8_table, 1, 'V8Excute in touch start');
+		  drawTable(handlingValue.v8ExcuteMove, handling_move_v8_table, 1, 'V8Excute in touch move');
 		  
-		  var msg = '';
-		  //this.mapResults_.forEach(function(result) {
-		  var value = getLongestTimes(this.mapResults_, 1);
-			
-			// Draw the blocking events self time table.
-			// var waiting_data = result.pairs.wait_self_time.selfTime;
-// 			waitingCount += result.pairs.wait_self_time.count;
-// 	        for (var process in waiting_data) {
-// 				if (process in waitingAllEvents) {
-// 					waitingAllEvents[process] += waiting_data[process];
-// 				} else {
-// 					waitingAllEvents[process] = waiting_data[process];
-// 				}
-// 			}
-// 			msg += excuteV8Events.length + ' ';
-// 			excuteV8Events = excuteV8Events.concat(result.pairs.excute_self_time.V8Excute);
-// 			waitingV8Events = waitingV8Events.concat(result.pairs.wait_self_time.V8Excute);
-//		  });
-		  
-		  drawTable(value.startHandlers, handling_start_table, value.startCount, 'Handlering touch start');
-		  drawTable(value.moveHandlers, handling_move_table, value.moveCount, 'Handlering touch move');
-		  drawTable(value.v8ExcuteStart, handling_start_v8_table, 1, 'V8Excute in touch start');
-		  drawTable(value.v8ExcuteMove, handling_move_v8_table, 1, 'V8Excute in touch move');
+		  drawTable(queuingValue.moveHandlers, queuing_move_table, queuingValue.count, 'Queuing touch move');
+		  drawTable(queuingValue.v8ExcuteMove, queuing_move_v8_table, 1, 'V8Excute in touch move');
 		  
 		  
-  	      //drawTable(excuteV8Events, excute_v8_table, 1, 'V8.Execute');
-		  //drawTable(waitingV8Events, waiting_v8_table, 1, 'V8.Execute');
-		  this.$.data.textContent += msg;
 		  // var chart = new tr.ui.b.PieChart();
 // 	      chart.width = 1000;
 //  	      chart.height = 400;

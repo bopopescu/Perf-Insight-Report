@@ -46,7 +46,7 @@ tr.exportTo('pi.m', function() {
 						  var webview = flowEvent.endSlice.subSlices[i];
 						  touchMoveTimes.push(forwardToRendererMoveTime);
 						  webviewTimes.push(webview);
-						  console.log(webview.title + ' ' + webview.start);	
+						  console.log(forwardToRendererMoveTime + ' | ' + webview.start);	
 						}
 					  }
 					  flowEvent = flowEvent.endSlice.outFlowEvents[0];
@@ -84,8 +84,9 @@ tr.exportTo('pi.m', function() {
 			console.log(' renderMainThread ' + renderMainThread.name + '   ' + renderMainThread.tid);
 			var handlers = {};
 			renderMainThread.sliceGroup.slices.forEach(function(slice) {
-				var sliceEndTime = slice.start + slice.duration;
+				var sliceEndTime = slice.start + slice.selfTime;
 				if (sliceEndTime > data.touchMoveTimes[i] && sliceEndTime <= data.webviewTimes[i].start) {
+					console.log(slice.title + '   ' + sliceEndTime);
 					if (slice.title in handlers) {
 						handlers[slice.title] += slice.selfTime;
 					} else {

@@ -109,6 +109,77 @@ tr.exportTo('pi.m', function() {
   // Exporting for tests.
   return {
     myMapFunction: myMapFunction
+	//   function myMapFunction(results, run_info, model) {
+	//     model.getAllThreads().forEach(function(thread) {
+	//       thread.asyncSliceGroup.slices.forEach(function(gestureSlice) {
+	// 	  if (gestureSlice.title.indexOf('InputLatency::GestureScrollUpdate') > -1) {
+	// 		  thread.asyncSliceGroup.slices.forEach(function(touchSlice) {
+	// 		  	if (touchSlice.title.indexOf('InputLatency::TouchMove') > -1) {
+	// 				if (gestureSlice.args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time == touchSlice.args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time) {
+	// 				  console.log(thread.name + ' ' + touchSlice.title+'   '+touchSlice.args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time + '   ' + touchSlice.args.data.trace_id);
+	//
+	// 				  model.flowEvents.forEach(function(flowEvent) {
+	// 						if (flowEvent.args.trace_id == touchSlice.args.data.trace_id) {
+	//   							  // console.log(flowEvent.title + '   ' + flowEvent.args.step + '   ' + flowEvent.startSlice.title + '   ' + flowEvent.endSlice.title);
+	// 						  var flowEvent1 = flowEvent.endSlice.outFlowEvents[0];
+	// 						  var flag = true;
+	// 						  while (flag && flowEvent1!=null) {
+	// 							  // console.log(flowEvent1.title + '   ' +  flowEvent1.endSlice.subSlices.length);
+	// 							  for (var i = 0; i < flowEvent1.endSlice.subSlices.length; i++) {
+	// 							      if (flowEvent1.endSlice.subSlices[i].title.indexOf('WebViewImpl::handleInputEvent') > -1) {
+	// 								  	flag = false;
+	// 									var handlers = {};
+	//   								       	var eventHandler = flowEvent1.endSlice.subSlices[i].subSlices[0];
+	//   								        // console.log(eventHandler.title);
+	// 									var slices = [eventHandler];
+	// 									while (slices.length > 0) {
+	// 										eventHandler = slices[0];
+	// 										if (eventHandler.title in handlers) {
+	// 											handlers[eventHandler.title] += eventHandler.selfTime;
+	// 										} else {
+	// 											handlers[eventHandler.title] = eventHandler.selfTime;
+	// 										}
+	// 										slices.splice(0, 1);
+	// 										for (var k = 0; k < eventHandler.subSlices.length; k++) {
+	// 											slices.push(eventHandler.subSlices[k]);
+	// 										}
+	// 									}
+	// 									var keysSorted = Object.keys(handlers).sort(function(a,b){return handlers[a]-handlers[b]})
+	// 									console.log(keysSorted);
+	//
+	// 									for	(var index = 0; index < keysSorted.length; index++)
+	// 									  console.log(keysSorted[index] + '   ' + handlers[keysSorted[index]]);
+	// 								  }
+	//
+	// 							  }
+	// 							  flowEvent1 = flowEvent1.endSlice.outFlowEvents[0];
+	// 						  }
+	//
+	// 						}
+	//
+	//  						});
+	//
+	//
+	// 				}
+	//
+	// 		  	}
+	// 		  });
+	//
+	// 	  }
+	//
+	//
+	//       });
+	//     });
+	// var myDict = {};
+	// results.addValue(new pi.v.DictValue(run_info, 'my_key', myDict));
+	//
+	//   }
+  //
+  // pi.FunctionRegistry.register(myMapFunction);
+  //
+  // // Exporting for tests.
+  // return {
+  //   myMapFunctionForTest: myMapFunction
   };
 });
 </script>

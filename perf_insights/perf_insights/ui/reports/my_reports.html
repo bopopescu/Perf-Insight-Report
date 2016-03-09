@@ -29,7 +29,9 @@
       this.mapResults_ = mapResults;
       this.updateContents_();
     },
-
+    // updateContents_: function() {
+//       this.$.data.textContent = JSON.stringify(this.mapResults_, null, 't');
+//     }
 	updateContents_: function() {
 		  // this.$.data.textContent = JSON.stringify(this.mapResults_, null, 't');
 	      var histograms = {};
@@ -55,7 +57,7 @@
 	    chart.data = data;
 		this.$.chart.appendChild(chart);  // .appendChild(chart);
 		
-			  
+		  
 	      this.mapResults_.allValuesFromFailureFreeRuns.forEach(function(result) {
 	        for (var process in result.value) {
 				msg += process + '   ' + result.value[process].centralBins[0].count;
