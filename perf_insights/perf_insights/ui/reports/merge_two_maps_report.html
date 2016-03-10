@@ -76,9 +76,9 @@
 	    
 	});
 	
-	handlingStartTimes.sort(function(a, b) {return a.duration-b.duration});
+	handlingStartTimes.sort(function(a, b) {return b.duration-a.duration});
 	var longestTouchStarts = handlingStartTimes.slice(0, Math.ceil(handlingStartTimes.length/percent));
-	handlingMoveTimes.sort(function(a, b) {return a.duration-b.duration});
+	handlingMoveTimes.sort(function(a, b) {return b.duration-a.duration});
 	var longestTouchMoves = handlingMoveTimes.slice(0, Math.ceil(handlingMoveTimes.length/percent));
 	var startHandlers = {};
 	var moveHandlers = {};
@@ -129,7 +129,7 @@
 	    queuingMoveTimes = queuingMoveTimes.concat(result.pairs.queuing_self_time);
 	});
 	
-	queuingMoveTimes.sort(function(a, b) {return a.duration-b.duration});
+	queuingMoveTimes.sort(function(a, b) {return b.duration-a.duration});
 	var longestQueuing = queuingMoveTimes.slice(0, Math.ceil(queuingMoveTimes.length/percent));
 	var moveHandlers = {};
 	var v8ExcuteMove = [];
