@@ -33,6 +33,20 @@ tr.exportTo('pi.m', function() {
 	});
 	return result;
   }
+
+  function getTouchEventSlices(gestureSlices, touchEventSlices) {  
+    var result = [];
+    var j = 0;
+    for (var i = 0; i < gestureSlices.length; i++) {
+      for (; j < touchEventSlices.length; j++) {
+      	if (gestureSlices[i].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time == touchEventSlices[j].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time) {
+          result.push(touchEventSlices[j]);
+          break;
+        }
+      }
+    }
+   	return result;
+  }
   
   function getHandlingTime(model, id) {
   	var handlers = {};
@@ -68,19 +82,16 @@ tr.exportTo('pi.m', function() {
   function allBlockingTimeMapFunction(model) {
   	var touchStartTime = {};
   	var browserThread = model.findAllThreadsNamed('CrBrowserMain');
-	if (browserThread.length == 1) {	
-	  var gestureScrollBegins = getAllAsyncSlices(browserThread[0], 'InputLatency::GestureScrollBegin');
-	  console.log(gestureScrollBegins.length);
-  	  for (var i = 0; i < gestureScrollBegins.length; i++) {
-		console.log(gestureScrollBegins[i].title + ' ' + gestureScrollBegins[i].args.data.trace_id);
-	  }
-	  
-	  var touchEvent = ['InputLatency::TouchStart']; // , 'InputLatency::TouchMove'
+	if (browserThread.length == 1) {
+	  var gestures = ['InputLatency::GestureTapDown', 'InputLatency::GestureScrollBegin'];
+	  var gestureSlices = getAllAsyncSlices(browserThread[0], gestures);
+	  var touchEvent = ['InputLatency::TouchStart', 'InputLatency::TouchMove'];
 	  var touchEventSlices = getAllAsyncSlices(browserThread[0], touchEvent);
-	  console.log(touchEventSlices.length);
-  	  for (var i = 0; i < touchEventSlices.length; i++) {
-		console.log(touchEventSlices[i].title + ' ' + touchEventSlices[i].args.data.trace_id + ' ' + touchEventSlices[i].start);
-		getHandlingTime(model, touchEventSlices[i].args.data.trace_id);
+      var touchslices = getTouchEventSlices(gestureSlices, touchEventSlices);
+	  console.log(touchslices.length);
+  	  for (var i = 0; i < touchslices.length; i++) {
+		console.log(touchslices[i].title + ' ' + touchslices[i].args.data.trace_id + ' ' + touchslices[i].start);
+		// getHandlingTime(model, touchEventSlices[i].args.data.trace_id);
 	  }
 	  
 	  
