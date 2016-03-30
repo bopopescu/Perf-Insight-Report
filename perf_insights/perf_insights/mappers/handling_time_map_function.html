@@ -11,6 +11,7 @@
 
 tr.exportTo('pi.m', function() {
 	
+  // Find all slices of the given name.
   function getAllSlices(thread, name) {  
   	var result = [];
 	thread.asyncSliceGroup.slices.forEach(function(slice) {
@@ -21,6 +22,7 @@ tr.exportTo('pi.m', function() {
 	return result;
   }
   
+  // Find the nearest touch start before the given time.
   function getClosestTouchStart(touchStarts, time) {
 	for (var i = 1; i < touchStarts.length; i++) {
 	  if (touchStarts[i].start > time)
@@ -29,7 +31,7 @@ tr.exportTo('pi.m', function() {
 	return touchStarts[touchStarts.length-1];
   } 
   	
-	
+  // 
   function getHandlingTime(model, id, duration) {
   	var handlers = {};
     model.flowEvents.forEach(function(flow) {
@@ -53,6 +55,7 @@ tr.exportTo('pi.m', function() {
 					  handlers[eventHandler.title] = eventHandler.selfTime;
 					}
 					slices.splice(0, 1);
+					// Push all the subslices into the queue to iterator through the whole tree.
 					for (var k = 0; k < eventHandler.subSlices.length; k++) {
 					  slices.push(eventHandler.subSlices[k]);
 					}
@@ -61,14 +64,14 @@ tr.exportTo('pi.m', function() {
 			  }
 			  flowEvent = flowEvent.endSlice.outFlowEvents[0];
 			}
-		  }
-	  });
-	  var value = {
-		duration: duration,
-		selfTime: handlers
-	  };
-	  return value; 
-    }
+		}
+	});
+	var value = {
+      duration: duration,
+	  selfTime: handlers
+	};
+	return value; 
+  }
 	
   function handlingTimeMapFunction(model) {
   	var touchStartTime = {};
