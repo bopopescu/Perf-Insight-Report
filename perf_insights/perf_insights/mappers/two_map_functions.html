@@ -4,6 +4,7 @@
 <link rel="import" href="/perf_insights/mappers/touch_start_map_function.html">
 <link rel="import" href="/perf_insights/mappers/handling_time_map_function.html">
 <link rel="import" href="/perf_insights/mappers/all_blocking_time_map_function.html">
+<link rel="import" href="/perf_insights/mappers/all_blocking_time_flow_event_map_function.html">
 
 <script>
 'use strict';
@@ -14,8 +15,8 @@ tr.exportTo('pi.m', function() {
 // 	var queuingTime = pi.m.queuingTimeMapFunction(model);
 // 	result.addPair('handling_self_time', handlingTime);
 // 	result.addPair('queuing_self_time', queuingTime);
-    var blockingTime = pi.m.allBlockingTimeMapFunction(model);
-	result.addPair('blocking_time', blockingTime);
+    var touchWithAck = pi.m.allBlockingTimeFlowEventMapFunction(model);
+	  result.addPair('touch_with_ack', touchWithAck);
   }
 
   pi.FunctionRegistry.register(mergeTwoMapsFunction);

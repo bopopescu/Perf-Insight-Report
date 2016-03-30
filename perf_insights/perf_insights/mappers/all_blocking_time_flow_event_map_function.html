@@ -24,15 +24,13 @@ tr.exportTo('pi.m', function() {
   }
   
   // Find all slices of the given name.
-  function getAckSlicesNamed(thread, name) {  
+  function getAllSlices(thread, name) {  
   	var result = [];
 	thread.sliceGroup.slices.forEach(function(slice) {
-      if (slice.title.indexOf('InputRouterImpl::ProcessInputEventAck') > -1) {
-      	if (name.indexOf(slice.args.type) > -1)
-		  result.push(slice);
+      if (slice.title.indexOf(name) > -1) {
+		result.push(slice);
 	  }
 	});
-	result.sort(function(a, b) {return a.start-b.start}); 
 	return result;
   }
 
@@ -52,8 +50,7 @@ tr.exportTo('pi.m', function() {
   
   function getHandlingTime(model, id) {
   	var handlers = {};
-	var ackStatus;
-    model.flowEvents.forEach(function(flow) {
+	model.flowEvents.forEach(function(flow) {
 	    // Follow the FlowEvent which starts from a touch event until we find its ack.
 		if (flow.args.trace_id == id) {
 		  var slice = flow.endSlice;
@@ -61,12 +58,12 @@ tr.exportTo('pi.m', function() {
 		  while (slice !=null) {
 			for (var i = 0; i < slice.ancestorSlices.length; i++) {
 			  if (slice.ancestorSlices[i].title.indexOf('InputRouterImpl::ProcessInputEventAck') > -1) {
-			  	console.log(slice.ancestorSlices[i].title + ' ' + slice.ancestorSlices[i].args.type + ' ' + slice.ancestorSlices[i].args.ack + ' ' + ackSource + ' ' + slice.ancestorSlices[i].start);
-				ackStatus = slice.ancestorSlices[i].args.ack;
-				return {
-	              ackStatus: ackStatus,
-	              ackSource: ackSource
-	            };
+			  	// console.log(slice.ancestorSlices[i].title + ' ' + slice.ancestorSlices[i].args.type + ' ' + slice.ancestorSlices[i].args.ack + ' ' + ackSource + ' ' + slice.ancestorSlices[i].start);
+				if (ackSource == 'CrRendererMain') {
+					console.log('ack return ' + slice.ancestorSlices[i].title);
+					return slice.ancestorSlices[i].title;
+				}
+	            
 			  }
 			}
 			
@@ -79,38 +76,34 @@ tr.exportTo('pi.m', function() {
 		  }
 		}
 	});
+	console.log('return null');
   }
   
-  function allBlockingTimeMapFunction(model) {
-  	var touchStartTime = {};
+  function allBlockingTimeFlowEventMapFunction(model) {
+  	var touchWithAck = [];
   	var browserThread = model.findAllThreadsNamed('CrBrowserMain');
 	if (browserThread.length == 1) {
-	  var touchEvents = ['InputLatency::TouchStart', 'InputLatency::TouchMove'];
-	  var touchEventSlices = getAllAsyncSlices(browserThread[0], touchEvents);
-	  console.log(touchEventSlices.length);
-	  for (var i = 0; i < touchEventSlices.length; i++) {
-		console.log(touchEventSlices[i].title + ' ' + touchEventSlices[i].start);
+	  var gestures = ['InputLatency::GestureTapDown', 'InputLatency::GestureScrollBegin'];
+	  var gestureSlices = getAllAsyncSlices(browserThread[0], gestures);
+	  var touchEvent = ['InputLatency::TouchStart', 'InputLatency::TouchMove'];
+	  var touchEventSlices = getAllAsyncSlices(browserThread[0], touchEvent);
+      var touchslices = getTouchEventSlices(gestureSlices, touchEventSlices);
+	  console.log(touchslices.length);
+  	  for (var i = 0; i < touchslices.length; i++) {
+		console.log(touchslices[i].title + ' ' + touchslices[i].args.data.trace_id + ' ' + touchslices[i].start);
+		var ack = getHandlingTime(model, touchslices[i].args.data.trace_id);
+		console.log('ack ' + ack);
+		if (ack != null) {
+		  console.log('ack ' + ack.args.type + ' ' + ack.args.ack);
+    	  touchWithAck.push({touch: touchslices[i], ack: ack});
+		}
 	  }
-      
-      var touchTypes = ['TouchStart', 'TouchMove'];
-      var ackSlices = getAckSlicesNamed(browserThread[0], touchTypes);
-	  console.log(ackSlices.length);
-  	  for (var i = 0; i < ackSlices.length; i++) {
-		// console.log(ackSlices[i].title + ' ' + ackSlices[i].args.type + ' ' + ackSlices[i].args.ack + ' ' + ackSlices[i].start);
-	  }
-	  
-	  
- 	}
-	
-	
-	// InputRouterImpl::ProcessInputEventAck
-	// touchStartTime[eventAck[i].args.type] = eventAck[i].args.ack;
-	
-  	return touchStartTime;
+	}
+  	return touchWithAck;
   }
 
   return {
-    allBlockingTimeMapFunction: allBlockingTimeMapFunction
+    allBlockingTimeFlowEventMapFunction: allBlockingTimeFlowEventMapFunction
   };
 });
 </script>
