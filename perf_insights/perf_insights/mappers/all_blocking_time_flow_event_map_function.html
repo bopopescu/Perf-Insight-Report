@@ -49,56 +49,67 @@ tr.exportTo('pi.m', function() {
   }
   
   function getHandlingTime(model, id) {
-  	var handlers = {};
+  	var flowEvent = null;
 	model.flowEvents.forEach(function(flow) {
-	    // Follow the FlowEvent which starts from a touch event until we find its ack.
+		// Follow the FlowEvent which starts from a touch event until we find its ack.
 		if (flow.args.trace_id == id) {
-		  var slice = flow.endSlice;
-		  var ackSource;
-		  while (slice !=null) {
-			for (var i = 0; i < slice.ancestorSlices.length; i++) {
-			  if (slice.ancestorSlices[i].title.indexOf('InputRouterImpl::ProcessInputEventAck') > -1) {
-			  	// console.log(slice.ancestorSlices[i].title + ' ' + slice.ancestorSlices[i].args.type + ' ' + slice.ancestorSlices[i].args.ack + ' ' + ackSource + ' ' + slice.ancestorSlices[i].start);
-				if (ackSource == 'CrRendererMain') {
-					console.log('ack return ' + slice.ancestorSlices[i].title);
-					return slice.ancestorSlices[i].title;
-				}
-	            
-			  }
-			}
-			
-			// Find where sends the ack, we only care about ack from renderer.
-			ackSource = slice.parentContainer.name;
-			if (slice.outFlowEvents[0] != null)
-			  slice = slice.outFlowEvents[0].endSlice;
-			else
-			  slice = null;
-		  }
+		  flowEvent = flow;
+		  return;
 		}
 	});
-	console.log('return null');
+
+	var slice = flowEvent.endSlice;
+	var ackSource;
+	while (slice !=null) {
+	  for (var i = 0; i < slice.ancestorSlices.length; i++) {
+		if (slice.ancestorSlices[i].title.indexOf('InputRouterImpl::ProcessInputEventAck') > -1) {
+		  // console.log(slice.ancestorSlices[i].title + ' ' + slice.ancestorSlices[i].args.type + ' ' + slice.ancestorSlices[i].args.ack + ' ' + ackSource + ' ' + slice.ancestorSlices[i].start);
+		  if (ackSource == 'CrRendererMain') {
+			return slice.ancestorSlices[i];
+	      }
+	    }
+	  }
+
+	  // Find where sends the ack, we only care about ack from renderer.
+	  ackSource = slice.parentContainer.name;
+	  if (slice.outFlowEvents[0] != null)
+		slice = slice.outFlowEvents[0].endSlice;
+	  else
+		slice = null;
+	}
+    return null;
   }
   
   function allBlockingTimeFlowEventMapFunction(model) {
-  	var touchWithAck = [];
+  	var touchAcks = [];
   	var browserThread = model.findAllThreadsNamed('CrBrowserMain');
 	if (browserThread.length == 1) {
 	  var gestures = ['InputLatency::GestureTapDown', 'InputLatency::GestureScrollBegin'];
 	  var gestureSlices = getAllAsyncSlices(browserThread[0], gestures);
 	  var touchEvent = ['InputLatency::TouchStart', 'InputLatency::TouchMove'];
 	  var touchEventSlices = getAllAsyncSlices(browserThread[0], touchEvent);
-      var touchslices = getTouchEventSlices(gestureSlices, touchEventSlices);
-	  console.log(touchslices.length);
-  	  for (var i = 0; i < touchslices.length; i++) {
-		console.log(touchslices[i].title + ' ' + touchslices[i].args.data.trace_id + ' ' + touchslices[i].start);
-		var ack = getHandlingTime(model, touchslices[i].args.data.trace_id);
-		console.log('ack ' + ack);
+      var touchSlices = getTouchEventSlices(gestureSlices, touchEventSlices);
+	  console.log(touchSlices.length);
+	  var count = 0;
+  	  for (var i = 0; i < touchSlices.length; i++) {
+		console.log(touchSlices[i].title + ' ' + touchSlices[i].args.data.trace_id + ' ' + touchSlices[i].start);
+		var ack = getHandlingTime(model, touchSlices[i].args.data.trace_id);
 		if (ack != null) {
-		  console.log('ack ' + ack.args.type + ' ' + ack.args.ack);
-    	  touchWithAck.push({touch: touchslices[i], ack: ack});
+		  var result = {
+			touchStart: touchSlices[i].start,
+			ackStart: ack.start,
+			ackType: ack.args.type,
+			ackResult: ack.args.ack
+		  };	
+		  touchAcks.push(result);
+		  count++;
 		}
 	  }
+	  console.log('count ' + count);
 	}
+    var touchWithAck = {
+      touchAcks: touchAcks
+    };
   	return touchWithAck;
   }
 
