@@ -8,9 +8,7 @@
 
 <script>
 'use strict';
-
 tr.exportTo('pi.m', function() {
-
   // Find all async slices whoes name are in the name list, and record the list of slices in time order.
   function getAllAsyncSlices(thread, name) {  
     var result = [];
@@ -33,7 +31,6 @@ tr.exportTo('pi.m', function() {
 	});
 	return result;
   }
-
   function getTouchEventSlices(gestureSlices, touchEventSlices) {  
     var result = [];
     var j = 0;
@@ -57,7 +54,6 @@ tr.exportTo('pi.m', function() {
 		  return;
 		}
 	});
-
 	var slice = flowEvent.endSlice;
 	var ackSource;
 	while (slice !=null) {
@@ -69,7 +65,6 @@ tr.exportTo('pi.m', function() {
 	      }
 	    }
 	  }
-
 	  // Find where sends the ack, we only care about ack from renderer.
 	  ackSource = slice.parentContainer.name;
 	  if (slice.outFlowEvents[0] != null)
@@ -111,10 +106,8 @@ tr.exportTo('pi.m', function() {
     };
   	return touchWithAck;
   }
-
   return {
     allBlockingTimeFlowEventMapFunction: allBlockingTimeFlowEventMapFunction
   };
 });
 </script>
-
