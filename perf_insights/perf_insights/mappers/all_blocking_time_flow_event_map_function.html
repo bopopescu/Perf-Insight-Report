@@ -92,20 +92,19 @@ tr.exportTo('pi.m', function() {
 	  console.log(touchSlices.length);
 	  var count = 0;
   	  for (var i = 0; i < touchSlices.length; i++) {
-		console.log(touchSlices[i].title + ' ' + touchSlices[i].args.data.trace_id + ' ' + touchSlices[i].start);
+		// console.log(touchSlices[i].title + ' ' + touchSlices[i].args.data.trace_id + ' ' + touchSlices[i].start);
 		var ack = getHandlingTime(model, touchSlices[i].args.data.trace_id);
 		if (ack != null) {
 		  var result = {
 			touchStart: touchSlices[i].start,
+			touchDuration: touchSlices[i].duration,
 			ackStart: ack.start,
 			ackType: ack.args.type,
 			ackResult: ack.args.ack
 		  };	
 		  touchAcks.push(result);
-		  count++;
 		}
 	  }
-	  console.log('count ' + count);
 	}
     var touchWithAck = {
       touchAcks: touchAcks
