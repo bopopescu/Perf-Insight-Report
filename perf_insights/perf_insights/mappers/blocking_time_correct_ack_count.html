@@ -52,6 +52,7 @@ function blockingTimeByGivenTime(touchWithAck, maxTouchAckTime) {
   var ackCount = touchWithAck.length;
   var actualTouchEventTime = 0;
   var touchEventTime = 0;
+  var consumedAckCount = 0;
   for (var i = 0; i < touchWithAck.length; i++) {
     if (touchWithAck[i].touchDuration >= maxTouchAckTime) {
       if (touchWithAck[i].ackResult != 'NOT_CONSUMED')
@@ -61,13 +62,16 @@ function blockingTimeByGivenTime(touchWithAck, maxTouchAckTime) {
       actualTouchEventTime += touchWithAck[i].touchDuration;
     }
     touchEventTime += touchWithAck[i].touchDuration;
+    if (touchWithAck[i].ackResult == 'CONSUMED')
+      consumedAckCount++;
   }
-  console.log('ackCount ' + ackCount + ' incorrectAckCount ' + incorrectAckCount + ' touchEventTime: ' +  touchEventTime);
+  console.log('ackCount ' + ackCount + ' incorrectAckCount ' + incorrectAckCount + ' consumedAckCount ' + consumedAckCount + ' touchEventTime: ' +  touchEventTime);
 
   var blockTimeAckCount = {
     blockingTime: maxTouchAckTime,
     ackCount: ackCount,
     incorrectAckCount: incorrectAckCount,
+    consumedAckCount: consumedAckCount,
     actualTouchEventTime: actualTouchEventTime,
     touchEventTime: touchEventTime
   };
@@ -92,8 +96,6 @@ tr.exportTo('pi.m', function() {
     }
     
     var blockingTimeAckCount = {
-      allBlockingResult: allBlockingResult,
-      noBlockingResult: noBlockingResult,
       blockingByTimeResult: blockingByTimeResult
     };
 
