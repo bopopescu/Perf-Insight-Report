@@ -49,10 +49,7 @@ function noBlockingTime(touchWithAck) {
 function blockingTimeByGivenTime(touchWithAck, maxTouchAckTime) {
 
   var incorrectAckCount = 0;
-  var ackCount = touchWithAck.length;
   var actualTouchEventTime = 0;
-  var touchEventTime = 0;
-  var consumedAckCount = 0;
   for (var i = 0; i < touchWithAck.length; i++) {
     if (touchWithAck[i].touchDuration >= maxTouchAckTime) {
       if (touchWithAck[i].ackResult != 'NOT_CONSUMED')
@@ -61,43 +58,48 @@ function blockingTimeByGivenTime(touchWithAck, maxTouchAckTime) {
     } else {
       actualTouchEventTime += touchWithAck[i].touchDuration;
     }
-    touchEventTime += touchWithAck[i].touchDuration;
-    if (touchWithAck[i].ackResult == 'CONSUMED')
-      consumedAckCount++;
   }
-  console.log('ackCount ' + ackCount + ' incorrectAckCount ' + incorrectAckCount + ' consumedAckCount ' + consumedAckCount + ' touchEventTime: ' +  touchEventTime);
+  // console.log(' incorrectAckCount ' + incorrectAckCount);
 
   var blockTimeAckCount = {
     blockingTime: maxTouchAckTime,
-    ackCount: ackCount,
     incorrectAckCount: incorrectAckCount,
-    consumedAckCount: consumedAckCount,
     actualTouchEventTime: actualTouchEventTime,
-    touchEventTime: touchEventTime
   };
   return blockTimeAckCount;
 }
 
 tr.exportTo('pi.m', function() {
   function blockingTimeAckCountFunction(result, model) {
-    var touchWithAck = pi.m.allBlockingTimeFlowEventMapFunction(model).touchAcks;
+    // var touchWithAck = pi.m.allBlockingTimeFlowEventMapFunction(model).touchAcks;
+    // var allBlockingResult = allBlockingTime(touchWithAck);
+    // var noBlockingResult = noBlockingTime(touchWithAck);
+    
+    // var maxTouchTime = touchWithAck.length > 0 ? Math.round(Math.max.apply(Math, touchWithAck.map(function(o){return o.touchDuration;}))) : 0;
+    // console.log('maxTouchTime ' + maxTouchTime + '  ' + touchWithAck.length);
+    // var num = 10;
+    // var times = Array.apply(null, Array(num+1)).map(function (_, i) {return Math.round(i * (maxTouchTime/num));});
+    // var blockingByTimeResult = [];
+    // var ackCount = touchWithAck.length;
+    // var touchEventTime = 0;
+    // var consumedAckCount = 0;
+    // for (var i = 0; i < touchWithAck.length; i++) {
+    //   touchEventTime += touchWithAck[i].touchDuration;
+    //   if (touchWithAck[i].ackResult == 'CONSUMED')
+    //     consumedAckCount++;
+    // }
+    // for (var i = 0; i < times.length; i++) {
+    //   blockingByTimeResult.push(blockingTimeByGivenTime(touchWithAck, times[i]));
+    // }
+    
+    // var blockingTimeAckCount = {
+    //   ackCount: ackCount,
+    //   consumedAckCount: consumedAckCount,
+    //   touchEventTime: touchEventTime,
+    //   blockingByTimeResult: blockingByTimeResult
+    // };
 
-    
-    var allBlockingResult = allBlockingTime(touchWithAck);
-    var noBlockingResult = noBlockingTime(touchWithAck);
-    
-    var maxTouchTime = Math.round(Math.max.apply(Math, touchWithAck.map(function(o){return o.touchDuration;})));
-    console.log('maxTouchTime ' + maxTouchTime);
-    var num = 10;
-    var times = Array.apply(null, Array(num+1)).map(function (_, i) {return Math.round(i * (maxTouchTime/num));});
-    var blockingByTimeResult = [];
-    for (var i = 0; i < times.length; i++) {
-      blockingByTimeResult.push(blockingTimeByGivenTime(touchWithAck, times[i]));
-    }
-    
-    var blockingTimeAckCount = {
-      blockingByTimeResult: blockingByTimeResult
-    };
+    var blockingTimeAckCount = pi.m.allBlockingTimeMapFunction(model).touchAcks;
 
     result.addPair('blocking_time_ack_count', blockingTimeAckCount);
   }

@@ -45,7 +45,7 @@ tr.exportTo('pi.m', function() {
    	return result;
   }
   
-  function getHandlingTime(model, id) {
+  function getAckForTouchEvent(model, id) {
   	var flowEvent = null;
 	model.flowEvents.forEach(function(flow) {
 		// Follow the FlowEvent which starts from a touch event until we find its ack.
@@ -88,7 +88,7 @@ tr.exportTo('pi.m', function() {
 	  var count = 0;
   	  for (var i = 0; i < touchSlices.length; i++) {
 		// console.log(touchSlices[i].title + ' ' + touchSlices[i].args.data.trace_id + ' ' + touchSlices[i].start);
-		var ack = getHandlingTime(model, touchSlices[i].args.data.trace_id);
+		var ack = getAckForTouchEvent(model, touchSlices[i].args.data.trace_id);
 		if (ack != null) {
 		  var result = {
 			touchStart: touchSlices[i].start,

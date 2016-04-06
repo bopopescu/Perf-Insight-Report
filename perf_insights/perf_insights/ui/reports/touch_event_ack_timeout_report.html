@@ -77,10 +77,9 @@
 
         var consumedAcks = [];
         this.mapResults_.forEach(function(result) {
-          var blockingByTimeResult = result.pairs.blockingByTimeResult;
-	      for (var i = 0; i < blockingByTimeResult.length; i++) {
-             consumedAcks.push(blockingByTimeResult[i].consumedAck);
-	      }
+          var blockingTimeAck = result.pairs.blocking_time_ack_count;
+          if (blockingTimeAck != null && blockingTimeAck.consumedAckCount != null)
+	        consumedAcks.push(blockingTimeAck.consumedAckCount);
 	    });
 	      
 
