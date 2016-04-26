@@ -50,32 +50,94 @@ tr.exportTo('pi.m', function() {
    	return result;
   }
   
+  function findTouchEventWithAck(touchEventSlices, ackSlices) {
+    var result = [];
+    var j = 0;
+	var pre = null;
+	for (var i = 0; i < ackSlices.length; i++) {
+		console.log('-----------------touch ack ' + ackSlices[i].start + ' ' + ackSlices[i].args.ack);
+	  for (; j < touchEventSlices.length; j++) {
+		if (ackSlices[i].start > touchEventSlices[j].start && ackSlices[i].start < (touchEventSlices[j].start + touchEventSlices[j].duration)) {
+			console.log('touch - ' + j + ' ' + touchEventSlices[j].start + ' ' + (touchEventSlices[j].start+touchEventSlices[j].duration) + ' ' + ackSlices[i].start + ' ' + ackSlices[i].args.ack);	
+			var info = {
+			  touchStart: touchEventSlices[j].start,
+			  touchDuration: touchEventSlices[j].duration,
+			  ackType: ackSlices[i].args.type,
+			  ackResult: ackSlices[i].args.ack,
+			  ackStart: ackSlices[i].start
+			};
+			result.push(info);
+			if (pre == null || pre.touchStart != info.touchStart)
+			  j++;
+			pre = info;
+	        break;
+		}
+        if (ackSlices[i].start < touchEventSlices[j].start) {
+		  console.log('touch ' + j + ' '  + touchEventSlices[j-1].start + ' ' + (touchEventSlices[j-1].start+touchEventSlices[j-1].duration) + ' ' + ackSlices[i].start + ' ' + ackSlices[i].args.ack);	
+		  var info = {
+			touchStart: touchEventSlices[j-1].start,
+			touchDuration: touchEventSlices[j-1].duration,
+			ackType: ackSlices[i].args.type,
+			ackResult: ackSlices[i].args.ack,
+		    ackStart: ackSlices[i].start
+		  };
+		  result.push(info);
+		  if (pre == null || pre.touchStart != info.touchStart)
+		    j++;
+		  pre = info;
+	      break;
+	    }
+      }
+    }
+	return result;
+  }
+  
   function allBlockingTimeMapFunction(model) {
   	var touchStartTime = {};
   	var browserThread = model.findAllThreadsNamed('CrBrowserMain');
 	if (browserThread.length == 1) {
-	  var touchEvents = ['InputLatency::TouchStart', 'InputLatency::TouchMove'];
-	  var touchEventSlices = getAllAsyncSlices(browserThread[0], touchEvents);
-	  console.log(touchEventSlices.length);
-	  for (var i = 0; i < touchEventSlices.length; i++) {
-		console.log(touchEventSlices[i].title + ' ' + touchEventSlices[i].start);
-	  }
+	  var touchStarts = ['InputLatency::TouchStart']; // , 'InputLatency::TouchMove'
+	  var touchStartSlices = getAllAsyncSlices(browserThread[0], touchStarts);
+	  console.log(touchStartSlices.length);
       
-      var touchTypes = ['TouchStart', 'TouchMove'];
-      var ackSlices = getAckSlicesNamed(browserThread[0], touchTypes);
-	  console.log(ackSlices.length);
-  	  for (var i = 0; i < ackSlices.length; i++) {
-		console.log(ackSlices[i].title + ' ' + ackSlices[i].args.type + ' ' + ackSlices[i].args.ack + ' ' + ackSlices[i].start);
+      var touchStartTypes = ['TouchStart']; // , 'TouchMove'
+      var startAckSlices = getAckSlicesNamed(browserThread[0], touchStartTypes);
+	  console.log(startAckSlices.length);
+  	  
+	  var startResult = findTouchEventWithAck(touchStartSlices, startAckSlices);
+	  console.log(startResult.length);
+  	  // for (var i = 0; i < startResult.length; i++) {
+// 		console.log(startResult[i].title + ' ' + startResult[i].start + ' ' + (startResult[i].start+startResult[i].duration));
+// 	  }
+	  
+	  var touchMoves = ['InputLatency::TouchMove']; // , 'InputLatency::TouchMove'
+	  var touchMoveSlices = getAllAsyncSlices(browserThread[0], touchMoves);
+	  for (var i = 0; i < touchMoveSlices.length; i++) {
+		console.log(i + ' ' + touchMoveSlices[i].title + ' ' + touchMoveSlices[i].start + ' ' + (touchMoveSlices[i].start+touchMoveSlices[i].duration));
 	  }
 	  
-	  
+      var touchMoveTypes = ['TouchMove']; // , 'TouchMove'
+      var moveAckSlices = getAckSlicesNamed(browserThread[0], touchMoveTypes);
+	  console.log('moveAckSlices ' + moveAckSlices.length);
+	  var moveResult = findTouchEventWithAck(touchMoveSlices, moveAckSlices);
+	  console.log('moveResult ' + moveResult.length);
+  	  
+	  var result = moveResult.concat(startResult);
+	  result.sort(function(a, b) {return a.ackStart-b.ackStart});
+	  var c = 0;
+  	  for (var i = 0; i < result.length; i++) {
+		console.log(result[i].ackType + ' ' + result[i].touchStart + ' ' + result[i].ackStart + ' ' + result[i].ackResult);
+		if (result[i].ackResult == 'CONSUMED')
+		  c++;
+	  }
+	  console.log('CONSUMED ' + c);
  	}
 	
+    var touchWithAck = {
+      touchAcks: result
+    };
+  	return touchWithAck;
 	
-	// InputRouterImpl::ProcessInputEventAck
-	// touchStartTime[eventAck[i].args.type] = eventAck[i].args.ack;
-	
-  	return touchStartTime;
   }
 
   return {

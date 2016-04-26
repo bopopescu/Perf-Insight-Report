@@ -9,8 +9,14 @@
     map-function-name="mergeTwoMapsFunction">
   <template>
     <pre><span id="data"></span></pre>
-	<tr-ui-b-table id="handling_start_table"></tr-ui-b-table>
-	<tr-ui-b-table id="handling_move_table"></tr-ui-b-table>
+	<tr-ui-b-table id="handling_start_table_before_load"></tr-ui-b-table>
+	<tr-ui-b-table id="handling_move_table_before_load"></tr-ui-b-table>
+	<tr-ui-b-table id="handling_start_table_after_load"></tr-ui-b-table>
+	<tr-ui-b-table id="handling_move_table_after_load"></tr-ui-b-table>
+	<tr-ui-b-table id="v8_sample_start_table_before_load"></tr-ui-b-table>
+	<tr-ui-b-table id="v8_sample_move_table_before_load"></tr-ui-b-table>
+	<tr-ui-b-table id="v8_sample_start_table_after_load"></tr-ui-b-table>
+	<tr-ui-b-table id="v8_sample_move_table_after_load"></tr-ui-b-table>
 	<tr-ui-b-table id="handling_start_v8_table"></tr-ui-b-table>
 	<tr-ui-b-table id="handling_move_v8_table"></tr-ui-b-table>
 	<tr-ui-b-table id="queuing_move_table"></tr-ui-b-table>
@@ -65,58 +71,142 @@
 
   }
   
+  function getV8ExecuteDomain(slice) {
+	  var samples = slice.parentContainer.samples;
+  	
+  }
+  
   function getLongestHandlingTimes(results, percent) {
-	var handlingStartTimes = [];
-	var handlingMoveTimes = [];
+  	var handlingStartTimes = [];
+  	var handlingMoveTimes = [];
+	var handlingStartTimesBeforeLoad = [];
+	var handlingMoveTimesBeforeLoad = [];
+	var handlingStartTimesAfterLoad = [];
+	var handlingMoveTimesAfterLoad = [];
 	results.forEach(function(result) {
 	  if (result.pairs.handling_self_time != null) {
   	    handlingStartTimes = handlingStartTimes.concat(result.pairs.handling_self_time.touchStartHandlings);
   	    handlingMoveTimes = handlingMoveTimes.concat(result.pairs.handling_self_time.touchMoveHandlings);
-	  }
-	    
-	});
+  	  }
+    });
 	
-	handlingStartTimes.sort(function(a, b) {return b.duration-a.duration});
-	var longestTouchStarts = handlingStartTimes.slice(0, Math.ceil(handlingStartTimes.length/percent));
-	handlingMoveTimes.sort(function(a, b) {return b.duration-a.duration});
-	var longestTouchMoves = handlingMoveTimes.slice(0, Math.ceil(handlingMoveTimes.length/percent));
-	var startHandlers = {};
-	var moveHandlers = {};
-	var v8ExcuteStart = [];
-	var v8ExcuteMove = [];
-	
-	for (var i = 0; i < longestTouchStarts.length; i++) {
-		for (var key in longestTouchStarts[i].selfTime) {
-			if (key in startHandlers) {
-			  startHandlers[key] += longestTouchStarts[i].selfTime[key];
-			} else {
-			  startHandlers[key] = longestTouchStarts[i].selfTime[key];
-			}
-			if (key.indexOf('V8.Execute') > -1)
-				v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
-		}
-		
+	for (var i = 0; i < handlingStartTimes.length; i++) {
+	  if (handlingStartTimes[i].pageloaded)
+		handlingStartTimesAfterLoad.push(handlingStartTimes[i]);
+	  else
+		handlingStartTimesBeforeLoad.push(handlingStartTimes[i]);
 	}
-	for (var i = 0; i < longestTouchMoves.length; i++) {
-		for (var key in longestTouchMoves[i].selfTime) {
-			if (key in moveHandlers) {
-			  moveHandlers[key] += longestTouchMoves[i].selfTime[key];
-			} else {
-			  moveHandlers[key] = longestTouchMoves[i].selfTime[key];
-			}
-			if (key.indexOf('V8.Execute') > -1)
-				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
-		}
-		
+	for (var i = 0; i < handlingMoveTimes.length; i++) {
+	  if (handlingMoveTimes[i].pageloaded)
+		handlingMoveTimesAfterLoad.push(handlingMoveTimes[i]);
+	  else
+		handlingMoveTimesBeforeLoad.push(handlingMoveTimes[i]);
 	}
 	
+	handlingStartTimesAfterLoad.sort(function(a, b) {return b.duration-a.duration});
+	var longestTouchStartsAfterLoad = handlingStartTimesAfterLoad.slice(0, Math.ceil(handlingStartTimesAfterLoad.length/percent));
+	handlingStartTimesBeforeLoad.sort(function(a, b) {return b.duration-a.duration});
+	var longestTouchStartsBeforeLoad = handlingStartTimesBeforeLoad.slice(0, Math.ceil(handlingStartTimesBeforeLoad.length/percent));
+	handlingMoveTimesAfterLoad.sort(function(a, b) {return b.duration-a.duration});
+	var longestTouchMovesAfterLoad = handlingMoveTimesAfterLoad.slice(0, Math.ceil(handlingMoveTimesAfterLoad.length/percent));
+	handlingMoveTimesBeforeLoad.sort(function(a, b) {return b.duration-a.duration});
+	var longestTouchMovesBeforeLoad = handlingMoveTimesBeforeLoad.slice(0, Math.ceil(handlingMoveTimesBeforeLoad.length/percent));
+	var startHandlersAfterLoad = {};
+	var startHandlersBeforeLoad = {};
+	var moveHandlersAfterLoad = {};
+	var moveHandlersBeforeLoad = {};
+	var v8ExcuteStartAfterLoad = {};
+	var v8ExcuteMoveAfterLoad = {};
+	var v8ExcuteStartBeforeLoad = {};
+	var v8ExcuteMoveBeforeLoad = {};
+	
+	for (var i = 0; i < longestTouchStartsAfterLoad.length; i++) {
+		for (var key in longestTouchStartsAfterLoad[i].selfTime) {
+			if (key in startHandlersAfterLoad) {
+			  startHandlersAfterLoad[key] += longestTouchStartsAfterLoad[i].selfTime[key];
+			} else {
+			  startHandlersAfterLoad[key] = longestTouchStartsAfterLoad[i].selfTime[key];
+			}
+			// if (key.indexOf('V8.Execute') > -1)
+//  			  v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
+		}
+		for (var key in longestTouchStartsAfterLoad[i].domains) {
+			if (key in v8ExcuteStartAfterLoad) {
+			  v8ExcuteStartAfterLoad[key] += longestTouchStartsAfterLoad[i].domains[key];
+			} else {
+			  v8ExcuteStartAfterLoad[key] = longestTouchStartsAfterLoad[i].domains[key];
+			}
+		}
+	}
+	for (var i = 0; i < longestTouchStartsBeforeLoad.length; i++) {
+		for (var key in longestTouchStartsBeforeLoad[i].selfTime) {
+			if (key in startHandlersBeforeLoad) {
+			  startHandlersBeforeLoad[key] += longestTouchStartsBeforeLoad[i].selfTime[key];
+			} else {
+			  startHandlersBeforeLoad[key] = longestTouchStartsBeforeLoad[i].selfTime[key];
+			}
+			// if (key.indexOf('V8.Execute') > -1)
+// 				v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
+		}
+		for (var key in longestTouchStartsBeforeLoad[i].domains) {
+			if (key in v8ExcuteStartBeforeLoad) {
+			  v8ExcuteStartBeforeLoad[key] += longestTouchStartsBeforeLoad[i].domains[key];
+			} else {
+			  v8ExcuteStartBeforeLoad[key] = longestTouchStartsBeforeLoad[i].domains[key];
+			}
+		}
+	}
+	for (var i = 0; i < longestTouchMovesAfterLoad.length; i++) {
+		for (var key in longestTouchMovesAfterLoad[i].selfTime) {
+			if (key in moveHandlersAfterLoad) {
+			  moveHandlersAfterLoad[key] += longestTouchMovesAfterLoad[i].selfTime[key];
+			} else {
+			  moveHandlersAfterLoad[key] = longestTouchMovesAfterLoad[i].selfTime[key];
+			}
+			// if (key.indexOf('V8.Execute') > -1)
+// 				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
+		}
+		for (var key in longestTouchMovesAfterLoad[i].domains) {
+			if (key in v8ExcuteMoveAfterLoad) {
+			  v8ExcuteMoveAfterLoad[key] += longestTouchMovesAfterLoad[i].domains[key];
+			} else {
+			  v8ExcuteMoveAfterLoad[key] = longestTouchMovesAfterLoad[i].domains[key];
+			}
+		}
+	}
+	for (var i = 0; i < longestTouchMovesBeforeLoad.length; i++) {
+		for (var key in longestTouchMovesBeforeLoad[i].selfTime) {
+			if (key in moveHandlersBeforeLoad) {
+			  moveHandlersBeforeLoad[key] += longestTouchMovesBeforeLoad[i].selfTime[key];
+			} else {
+			  moveHandlersBeforeLoad[key] = longestTouchMovesBeforeLoad[i].selfTime[key];
+			}
+			// if (key.indexOf('V8.Execute') > -1)
+// 				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
+		}
+		for (var key in longestTouchMovesBeforeLoad[i].domains) {
+			if (key in v8ExcuteMoveBeforeLoad) {
+			  v8ExcuteMoveBeforeLoad[key] += longestTouchMovesBeforeLoad[i].domains[key];
+			} else {
+			  v8ExcuteMoveBeforeLoad[key] = longestTouchMovesBeforeLoad[i].domains[key];
+			}
+		}
+	}
     var value = {
-	  startCount: longestTouchStarts.length,
-	  moveCount: longestTouchMoves.length,
-	  startHandlers: startHandlers,
-      moveHandlers: moveHandlers,
-	  v8ExcuteStart: v8ExcuteStart,
-	  v8ExcuteMove: v8ExcuteMove	
+	  startCountBeforeLoad: longestTouchStartsBeforeLoad.length,
+	  moveCountBeforeLoad: longestTouchMovesBeforeLoad.length,
+	  startHandlersBeforeLoad: startHandlersBeforeLoad,
+      moveHandlersBeforeLoad: moveHandlersBeforeLoad,
+	  startCountAfterLoad: longestTouchStartsAfterLoad.length,
+	  moveCountAfterLoad: longestTouchMovesAfterLoad.length,
+	  startHandlersAfterLoad: startHandlersAfterLoad,
+      moveHandlersAfterLoad: moveHandlersAfterLoad,
+	  v8ExcuteStartAfterLoad: v8ExcuteStartAfterLoad,
+	  v8ExcuteMoveAfterLoad: v8ExcuteMoveAfterLoad,
+	  v8ExcuteStartBeforeLoad: v8ExcuteStartBeforeLoad,
+	  v8ExcuteMoveBeforeLoad: v8ExcuteMoveBeforeLoad
+	  // v8ExcuteStart: v8ExcuteStart,
+	  // v8ExcuteMove: v8ExcuteMove	
     };
     return value;
   }
@@ -169,24 +259,40 @@
 
 	updateContents_: function() {
 		  // this.$.data.textContent = JSON.stringify(this.mapResults_, null, 't');
-	      var handling_start_table = this.$.handling_start_table;
-		  var handling_move_table = this.$.handling_move_table;
-	      var handling_start_v8_table = this.$.handling_start_v8_table;
-		  var handling_move_v8_table = this.$.handling_move_v8_table;
-		  var queuing_move_table = this.$.queuing_move_table;
-		  var queuing_move_v8_table = this.$.queuing_move_v8_table;
+	      var handling_start_table_before_load = this.$.handling_start_table_before_load;
+		  var handling_move_table_before_load = this.$.handling_move_table_before_load;
+	      var handling_start_table_after_load = this.$.handling_start_table_after_load;
+		  var handling_move_table_after_load = this.$.handling_move_table_after_load;
+	      var v8_sample_start_table_after_load = this.$.v8_sample_start_table_after_load;
+		  var v8_sample_move_table_after_load = this.$.v8_sample_move_table_after_load;
+	      var v8_sample_start_table_before_load = this.$.v8_sample_start_table_before_load;
+		  var v8_sample_move_table_before_load = this.$.v8_sample_move_table_before_load;
+	      // var handling_start_v8_table = this.$.handling_start_v8_table;
+		  // var handling_move_v8_table = this.$.handling_move_v8_table;
+		  // var queuing_move_table = this.$.queuing_move_table;
+		  // var queuing_move_v8_table = this.$.queuing_move_v8_table;
 		  
-		  var percent = 10;
+		  var percent = 1;
 	      var handlingValue = getLongestHandlingTimes(this.mapResults_, percent);
-		  var queuingValue = getLongestQueuingtTimes(this.mapResults_, percent);
+		  // var queuingValue = getLongestQueuingtTimes(this.mapResults_, percent);
 					  
-		  drawTable(handlingValue.startHandlers, handling_start_table, handlingValue.startCount, 'Handlering touch start');
-		  drawTable(handlingValue.moveHandlers, handling_move_table, handlingValue.moveCount, 'Handlering touch move');
-		  drawTable(handlingValue.v8ExcuteStart, handling_start_v8_table, 1, 'V8Excute in touch start');
-		  drawTable(handlingValue.v8ExcuteMove, handling_move_v8_table, 1, 'V8Excute in touch move');
+		  drawTable(handlingValue.startHandlersBeforeLoad, handling_start_table_before_load, handlingValue.startCountBeforeLoad, 'Handlering touch start before page load');
+		  drawTable(handlingValue.moveHandlersBeforeLoad, handling_move_table_before_load, handlingValue.moveCountBeforeLoad, 'Handlering touch move before page load');
+		  drawTable(handlingValue.startHandlersAfterLoad, handling_start_table_after_load, handlingValue.startCountAfterLoad, 'Handlering touch start after page load');
+		  drawTable(handlingValue.moveHandlersAfterLoad, handling_move_table_after_load, handlingValue.moveCountAfterLoad, 'Handlering touch move after page load');
 		  
-		  drawTable(queuingValue.moveHandlers, queuing_move_table, queuingValue.count, 'Queuing touch move');
-		  drawTable(queuingValue.v8ExcuteMove, queuing_move_v8_table, 1, 'V8Excute in touch move');
+		  
+		  drawTable(handlingValue.v8ExcuteStartAfterLoad, v8_sample_start_table_after_load, 1, 'V8 samples touch start after page load');
+		  drawTable(handlingValue.v8ExcuteMoveAfterLoad, v8_sample_move_table_after_load, 1, 'V8 samples touch move after page load');
+		  drawTable(handlingValue.v8ExcuteStartBeforeLoad, v8_sample_start_table_before_load, 1, 'V8 samples touch start before page load');
+		  drawTable(handlingValue.v8ExcuteMoveBeforeLoad, v8_sample_move_table_before_load, 1, 'V8 samples touch move before page load');
+		  
+	 
+		  // drawTable(handlingValue.v8ExcuteStart, handling_start_v8_table, 1, 'V8Excute in touch start');
+		  // drawTable(handlingValue.v8ExcuteMove, handling_move_v8_table, 1, 'V8Excute in touch move');
+		  
+		  // drawTable(queuingValue.moveHandlers, queuing_move_table, queuingValue.count, 'Queuing touch move');
+		  // drawTable(queuingValue.v8ExcuteMove, queuing_move_v8_table, 1, 'V8Excute in touch move');
 		  
 		  
 		  // var chart = new tr.ui.b.PieChart();

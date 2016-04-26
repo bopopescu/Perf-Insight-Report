@@ -31,10 +31,37 @@ tr.exportTo('pi.m', function() {
 	return touchStarts[touchStarts.length-1];
   } 
   	
+  function getV8ExecuteDomain(slice, domains) {
+	var samples = slice.parentContainer.samples;
+	var range = new tr.b.Range();
+	slice.addBoundsToRange(range);
+	var filtered = range.filterArray(
+	    slice.parentContainer.samples,
+	    function(sample) {return sample.start;});
+	console.log(filtered.length + ' ' + slice.title + ' ' + slice.start + ' ' + slice.duration);	
+	for (var i = 0; i < filtered.length; i++) {
+	  var title = filtered[i].stackTrace.map(function(f) { return f.title; });
+	  var domain = filtered[i].leafStackFrame.sourceInfo.domain;
+	  while (domain == null && filtered[i].leafStackFrame.parentFrame != null) {
+		  domain = filtered[i].leafStackFrame.parentFrame.sourceInfo.domain;
+		  console.log('parentFrame ' + domain);
+	  }
+	  if (domain in domains) {
+	    domains[domain]++;
+	  } else {
+	    domains[domain] = 1;
+	  }
+  	  console.log(domain);
+    }
+  }	
+	
   // 
-  function getHandlingTime(model, id, duration) {
+  function getHandlingTime(model, id, touch) {
   	var handlers = {};
-    model.flowEvents.forEach(function(flow) {
+	var v8Execute = [];
+	var domains = {};
+    
+	model.flowEvents.forEach(function(flow) {
 	    // Follow the FlowEvent whichs connects the touchmove and EventHandler.
 		if (flow.args.trace_id == id) {
 		  var flowEvent = flow.endSlice.outFlowEvents[0];
@@ -49,6 +76,12 @@ tr.exportTo('pi.m', function() {
 				  var slices = [eventHandler];
 				  while (slices.length > 0) {
 					eventHandler = slices[0];
+					if (eventHandler.title == 'V8.Execute') {
+				      v8Execute.push(eventHandler);
+					  // console.log('trace id ' + id);
+					  getV8ExecuteDomain(eventHandler, domains);
+					}
+					
 					if (eventHandler.title in handlers) {
 					  handlers[eventHandler.title] += eventHandler.selfTime;
 					} else {
@@ -67,29 +100,49 @@ tr.exportTo('pi.m', function() {
 		}
 	});
 	var value = {
-      duration: duration,
-	  selfTime: handlers
+	  pageloaded: touch.pageloaded,
+      duration: touch.duration,
+	  selfTime: handlers,
+	  domains: domains
 	};
 	return value; 
   }
-	
+  
+  function pageload(model) {
+	var processes = model.getAllProcesses();
+	for (var i = 0; i < processes.length; i++) {
+	  // console.log(processes[i].name+ ' ' + processes[i].instantEvents.length);
+	  var instantEvents = processes[i].instantEvents;
+  	  for (var j = 0; j < instantEvents.length; j++) {
+  	    // console.log(instantEvents[j].title + ' ' + instantEvents[j].start);
+		if (instantEvents[j].title == 'LoadFinished')
+			return instantEvents[j].start;
+	  }
+	}
+	return 0;	
+  }
+  
   function handlingTimeMapFunction(model) {
   	var touchStartTime = {};
   	var touchMoveTime = {};
-  	model.getAllThreads().forEach(function(thread) {
+  	var loadFinishTime = pageload(model);
+	
+	model.getAllThreads().forEach(function(thread) {
       var gestureScrollBegins = getAllSlices(thread, 'InputLatency::GestureScrollBegin');
   	  var touchMoves = getAllSlices(thread, 'InputLatency::TouchMove');
   	  var touchStarts = getAllSlices(thread, 'InputLatency::TouchStart');
   	  touchStarts.sort(function(a, b) {return a.start-b.start}); 
   	  for (var i = 0; i < gestureScrollBegins.length; i++) {
-  		console.log(gestureScrollBegins[i].title + ' ' + gestureScrollBegins[i].start);
+  		// console.log(gestureScrollBegins[i].title + ' ' + gestureScrollBegins[i].start);
   		for (var j = 0; j < touchMoves.length; j++) {
   	  	  if (gestureScrollBegins[i].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time == touchMoves[j].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time) {
-  			console.log(touchMoves[j].title + ' ' + touchMoves[j].start);
-  			touchMoveTime[touchMoves[j].args.data.trace_id] = touchMoves[j].duration;
-  			var touchstart = getClosestTouchStart(touchStarts, touchMoves[j].start);
-	  		touchStartTime[touchstart.args.data.trace_id] = touchstart.duration;
-	  	    console.log(touchstart.title + ' ' + touchstart.start);
+  			// console.log(touchMoves[j].title + ' ' + touchMoves[j].start + ' ' + loadFinishTime);
+			var isPageLoaded = touchMoves[j].start >= loadFinishTime ? true : false;
+			touchMoveTime[touchMoves[j].args.data.trace_id] = {pageloaded: isPageLoaded, duration: touchMoves[j].duration};
+			var touchstart = getClosestTouchStart(touchStarts, touchMoves[j].start);
+			isPageLoaded = touchstart.start >= loadFinishTime ? true : false;
+			touchStartTime[touchstart.args.data.trace_id] = {pageloaded: isPageLoaded, duration: touchstart.duration};
+		    // console.log(touchstart.title + ' ' + touchstart.start);
   		  }
   		}
 	  }
@@ -112,11 +165,11 @@ tr.exportTo('pi.m', function() {
            touchMoveHandlings.push(moves);
 	}
 	
-	 var value = {
-	   touchStartHandlings: touchStartHandlings,
-	   touchMoveHandlings: touchMoveHandlings
-	 };
-	 return value;
+	var value = {
+	  touchStartHandlings: touchStartHandlings,	 
+	  touchMoveHandlings: touchMoveHandlings
+	};
+	return value;
 	    
   }
 
