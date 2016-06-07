@@ -31,8 +31,8 @@ tr.exportTo('pi.m', function() {
 	return touchStarts[touchStarts.length-1];
   } 
   	
-  function getV8ExecuteDomain(slice, domains) {
-	var samples = slice.parentContainer.samples;
+  function getV8ExecuteDomain(slice, jsNative, jsSource, nativeFunc) {
+	// var samples = slice.parentContainer.samples;
 	var range = new tr.b.Range();
 	slice.addBoundsToRange(range);
 	var filtered = range.filterArray(
@@ -41,25 +41,69 @@ tr.exportTo('pi.m', function() {
 	console.log(filtered.length + ' ' + slice.title + ' ' + slice.start + ' ' + slice.duration);	
 	for (var i = 0; i < filtered.length; i++) {
 	  var title = filtered[i].stackTrace.map(function(f) { return f.title; });
-	  var domain = filtered[i].leafStackFrame.sourceInfo.domain;
-	  while (domain == null && filtered[i].leafStackFrame.parentFrame != null) {
-		  domain = filtered[i].leafStackFrame.parentFrame.sourceInfo.domain;
-		  console.log('parentFrame ' + domain);
+	  // var slicetitle = tr.e.chrome.SliceTitleFixer.fromEvent(slice);
+      var sdomain =  filtered[i].leafStackFrame.domain;
+	  console.log("title " + title);
+	  // var rthread = slice.parentContainer;
+// 	  rthread.asyncSliceGroup.slices.forEach(function(slice) {
+// 	            if (slice.viewSubGroupTitle == 'netlog') {
+// 				  	  console.log("viewSubGroupTitle " + slice.title + "asyncslice url  " + slice.url);
+//
+// 	            }
+// 			});
+	  // console.log("  sdomain  " + sdomain  + " renderer  " + slice.parentContainer.parent.name + " renderer pid " + slice.parentContainer.parent.domain);
+	  // if (sourceInfo === undefined ||
+        //    !(sourceInfo instanceof tr.model.source_info.JSSourceInfo))
+	  if (filtered[i].leafStackFrame != null) {
+		  var isNative = false;
+		  if (filtered[i].leafStackFrame.sourceInfo != null)
+		   isNative = filtered[i].leafStackFrame.sourceInfo.isNative;
+		  var title = filtered[i].leafStackFrame.title.split(" ");
+		  var domain = filtered[i].leafStackFrame.domain;
+		  var parentFrame = filtered[i].leafStackFrame.parentFrame;
+		  while (domain == null && parentFrame != null) {
+			  domain = parentFrame.domain;
+			  // next parent
+			  parentFrame = parentFrame.parentFrame;
+		  }
+		  // console.log('domain ' + domain);
+	
+		  var pageDomain = filtered[i].leafStackFrame.domain;
+		  parentFrame = filtered[i].leafStackFrame.parentFrame;
+		  while (parentFrame != null) {
+			  pageDomain = parentFrame.domain;
+			  // next parent
+			  parentFrame = parentFrame.parentFrame;
+		  }
+		  //console.log('pageDomain ' + pageDomain);
+		  // console.log("isNative " + isNative + " funct " + title[0]);  
+	  
+		  if (isNative) {
+		  	jsNative['native']++;
+			if (title[0] in nativeFunc)
+			  nativeFunc[title[0]]++;
+			else
+			  nativeFunc[title[0]] = 1;
+		  } else
+			jsNative['nonnative']++;
+		  if (domain == pageDomain)
+			jsSource['firstParty']++;
+		  else
+			jsSource['thirdParty']++;
+	  	  
 	  }
-	  if (domain in domains) {
-	    domains[domain]++;
-	  } else {
-	    domains[domain] = 1;
-	  }
-  	  console.log(domain);
     }
   }	
 	
   // 
-  function getHandlingTime(model, id, touch) {
+  function getHandlingTime(model, id, touch, type) {
   	var handlers = {};
 	var v8Execute = [];
-	var domains = {};
+	var jsNative = {native:0,
+	                nonnative: 0};
+	var jsSource = {firstParty: 0,
+	                thirdParty: 0};
+	var nativeFunc = {};
     
 	model.flowEvents.forEach(function(flow) {
 	    // Follow the FlowEvent whichs connects the touchmove and EventHandler.
@@ -79,7 +123,7 @@ tr.exportTo('pi.m', function() {
 					if (eventHandler.title == 'V8.Execute') {
 				      v8Execute.push(eventHandler);
 					  // console.log('trace id ' + id);
-					  getV8ExecuteDomain(eventHandler, domains);
+					  getV8ExecuteDomain(eventHandler, jsNative, jsSource, nativeFunc);
 					}
 					
 					if (eventHandler.title in handlers) {
@@ -99,11 +143,18 @@ tr.exportTo('pi.m', function() {
 			}
 		}
 	});
+	console.log('firstParty ' + jsSource['firstParty'] + '   thirdParty ' + jsSource['thirdParty']);
+	console.log('native ' + jsNative['native'] + '   nonnative ' + jsNative['nonnative']);
+	console.log('pageloaded ' + touch.pageloaded + '   type ' + type);
+	for(var f in nativeFunc)
+	  console.log('native ' + f);
 	var value = {
 	  pageloaded: touch.pageloaded,
       duration: touch.duration,
 	  selfTime: handlers,
-	  domains: domains
+	  jsNative: jsNative,
+	  jsSource: jsSource,
+	  nativeFunc: nativeFunc
 	};
 	return value; 
   }
@@ -154,13 +205,13 @@ tr.exportTo('pi.m', function() {
 	// console.log(longestTouchMove);
 	var touchStartHandlings = [];
 	for (var id in touchStartTime) {
-		var starts = getHandlingTime(model, id, touchStartTime[id]);
+		var starts = getHandlingTime(model, id, touchStartTime[id], "start");
 		if (Object.keys(starts.selfTime).length > 0)
 		  touchStartHandlings.push(starts);
 	}
 	var touchMoveHandlings = [];
 	for (var id in touchMoveTime) {
-		var moves = getHandlingTime(model, id, touchMoveTime[id]);
+		var moves = getHandlingTime(model, id, touchMoveTime[id], "move");
 		if (Object.keys(moves.selfTime).length > 0)
            touchMoveHandlings.push(moves);
 	}

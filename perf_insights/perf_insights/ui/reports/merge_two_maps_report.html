@@ -17,6 +17,10 @@
 	<tr-ui-b-table id="v8_sample_move_table_before_load"></tr-ui-b-table>
 	<tr-ui-b-table id="v8_sample_start_table_after_load"></tr-ui-b-table>
 	<tr-ui-b-table id="v8_sample_move_table_after_load"></tr-ui-b-table>
+	<tr-ui-b-table id="v8_jstype_start_table_before_load"></tr-ui-b-table>
+	<tr-ui-b-table id="v8_jstype_move_table_before_load"></tr-ui-b-table>
+	<tr-ui-b-table id="v8_jstype_start_table_after_load"></tr-ui-b-table>
+	<tr-ui-b-table id="v8_jstype_move_table_after_load"></tr-ui-b-table>
 	<tr-ui-b-table id="handling_start_v8_table"></tr-ui-b-table>
 	<tr-ui-b-table id="handling_move_v8_table"></tr-ui-b-table>
 	<tr-ui-b-table id="queuing_move_table"></tr-ui-b-table>
@@ -119,6 +123,10 @@
 	var v8ExcuteMoveAfterLoad = {};
 	var v8ExcuteStartBeforeLoad = {};
 	var v8ExcuteMoveBeforeLoad = {};
+	var v8JstypeStartAfterLoad = {native: 0, nonnative: 0, firstParty: 0, thirdParty: 0};
+	var v8JstypeMoveAfterLoad = {native: 0, nonnative: 0, firstParty: 0, thirdParty: 0};
+	var v8JstypeStartBeforeLoad = {native: 0, nonnative: 0, firstParty: 0, thirdParty: 0};
+	var v8JstypeMoveBeforeLoad = {native: 0, nonnative: 0, firstParty: 0, thirdParty: 0};
 	
 	for (var i = 0; i < longestTouchStartsAfterLoad.length; i++) {
 		for (var key in longestTouchStartsAfterLoad[i].selfTime) {
@@ -130,13 +138,18 @@
 			// if (key.indexOf('V8.Execute') > -1)
 //  			  v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
 		}
-		for (var key in longestTouchStartsAfterLoad[i].domains) {
+		for (var key in longestTouchStartsAfterLoad[i].nativeFunc) {
 			if (key in v8ExcuteStartAfterLoad) {
-			  v8ExcuteStartAfterLoad[key] += longestTouchStartsAfterLoad[i].domains[key];
+			  v8ExcuteStartAfterLoad[key] += longestTouchStartsAfterLoad[i].nativeFunc[key];
 			} else {
-			  v8ExcuteStartAfterLoad[key] = longestTouchStartsAfterLoad[i].domains[key];
+			  v8ExcuteStartAfterLoad[key] = longestTouchStartsAfterLoad[i].nativeFunc[key];
 			}
 		}
+		
+		v8JstypeStartAfterLoad['native'] += longestTouchStartsAfterLoad[i].jsNative['native'];
+		v8JstypeStartAfterLoad['nonnative'] += longestTouchStartsAfterLoad[i].jsNative['nonnative'];
+		v8JstypeStartAfterLoad['firstParty'] += longestTouchStartsAfterLoad[i].jsSource['firstParty'];
+		v8JstypeStartAfterLoad['thirdParty'] += longestTouchStartsAfterLoad[i].jsSource['thirdParty'];		
 	}
 	for (var i = 0; i < longestTouchStartsBeforeLoad.length; i++) {
 		for (var key in longestTouchStartsBeforeLoad[i].selfTime) {
@@ -148,13 +161,17 @@
 			// if (key.indexOf('V8.Execute') > -1)
 // 				v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
 		}
-		for (var key in longestTouchStartsBeforeLoad[i].domains) {
+		for (var key in longestTouchStartsBeforeLoad[i].nativeFunc) {
 			if (key in v8ExcuteStartBeforeLoad) {
-			  v8ExcuteStartBeforeLoad[key] += longestTouchStartsBeforeLoad[i].domains[key];
+			  v8ExcuteStartBeforeLoad[key] += longestTouchStartsBeforeLoad[i].nativeFunc[key];
 			} else {
-			  v8ExcuteStartBeforeLoad[key] = longestTouchStartsBeforeLoad[i].domains[key];
+			  v8ExcuteStartBeforeLoad[key] = longestTouchStartsBeforeLoad[i].nativeFunc[key];
 			}
 		}
+		v8JstypeStartBeforeLoad['native'] += longestTouchStartsBeforeLoad[i].jsNative['native'];
+		v8JstypeStartBeforeLoad['nonnative'] += longestTouchStartsBeforeLoad[i].jsNative['nonnative'];
+		v8JstypeStartBeforeLoad['firstParty'] += longestTouchStartsBeforeLoad[i].jsSource['firstParty'];
+		v8JstypeStartBeforeLoad['thirdParty'] += longestTouchStartsBeforeLoad[i].jsSource['thirdParty'];
 	}
 	for (var i = 0; i < longestTouchMovesAfterLoad.length; i++) {
 		for (var key in longestTouchMovesAfterLoad[i].selfTime) {
@@ -166,13 +183,17 @@
 			// if (key.indexOf('V8.Execute') > -1)
 // 				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
 		}
-		for (var key in longestTouchMovesAfterLoad[i].domains) {
+		for (var key in longestTouchMovesAfterLoad[i].nativeFunc) {
 			if (key in v8ExcuteMoveAfterLoad) {
-			  v8ExcuteMoveAfterLoad[key] += longestTouchMovesAfterLoad[i].domains[key];
+			  v8ExcuteMoveAfterLoad[key] += longestTouchMovesAfterLoad[i].nativeFunc[key];
 			} else {
-			  v8ExcuteMoveAfterLoad[key] = longestTouchMovesAfterLoad[i].domains[key];
+			  v8ExcuteMoveAfterLoad[key] = longestTouchMovesAfterLoad[i].nativeFunc[key];
 			}
 		}
+		v8JstypeMoveAfterLoad['native'] += longestTouchMovesAfterLoad[i].jsNative['native'];
+		v8JstypeMoveAfterLoad['nonnative'] += longestTouchMovesAfterLoad[i].jsNative['nonnative'];
+		v8JstypeMoveAfterLoad['firstParty'] += longestTouchMovesAfterLoad[i].jsSource['firstParty'];
+		v8JstypeMoveAfterLoad['thirdParty'] += longestTouchMovesAfterLoad[i].jsSource['thirdParty'];
 	}
 	for (var i = 0; i < longestTouchMovesBeforeLoad.length; i++) {
 		for (var key in longestTouchMovesBeforeLoad[i].selfTime) {
@@ -184,13 +205,17 @@
 			// if (key.indexOf('V8.Execute') > -1)
 // 				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
 		}
-		for (var key in longestTouchMovesBeforeLoad[i].domains) {
+		for (var key in longestTouchMovesBeforeLoad[i].nativeFunc) {
 			if (key in v8ExcuteMoveBeforeLoad) {
-			  v8ExcuteMoveBeforeLoad[key] += longestTouchMovesBeforeLoad[i].domains[key];
+			  v8ExcuteMoveBeforeLoad[key] += longestTouchMovesBeforeLoad[i].nativeFunc[key];
 			} else {
-			  v8ExcuteMoveBeforeLoad[key] = longestTouchMovesBeforeLoad[i].domains[key];
+			  v8ExcuteMoveBeforeLoad[key] = longestTouchMovesBeforeLoad[i].nativeFunc[key];
 			}
 		}
+		v8JstypeMoveBeforeLoad['native'] += longestTouchMovesBeforeLoad[i].jsNative['native'];
+		v8JstypeMoveBeforeLoad['nonnative'] += longestTouchMovesBeforeLoad[i].jsNative['nonnative'];
+		v8JstypeMoveBeforeLoad['firstParty'] += longestTouchMovesBeforeLoad[i].jsSource['firstParty'];
+		v8JstypeMoveBeforeLoad['thirdParty'] += longestTouchMovesBeforeLoad[i].jsSource['thirdParty'];
 	}
     var value = {
 	  startCountBeforeLoad: longestTouchStartsBeforeLoad.length,
@@ -204,7 +229,11 @@
 	  v8ExcuteStartAfterLoad: v8ExcuteStartAfterLoad,
 	  v8ExcuteMoveAfterLoad: v8ExcuteMoveAfterLoad,
 	  v8ExcuteStartBeforeLoad: v8ExcuteStartBeforeLoad,
-	  v8ExcuteMoveBeforeLoad: v8ExcuteMoveBeforeLoad
+	  v8ExcuteMoveBeforeLoad: v8ExcuteMoveBeforeLoad,
+	  v8JstypeStartAfterLoad: v8JstypeStartAfterLoad,
+	  v8JstypeMoveAfterLoad: v8JstypeMoveAfterLoad,
+	  v8JstypeStartBeforeLoad: v8JstypeStartBeforeLoad,
+	  v8JstypeMoveBeforeLoad: v8JstypeMoveBeforeLoad
 	  // v8ExcuteStart: v8ExcuteStart,
 	  // v8ExcuteMove: v8ExcuteMove	
     };
@@ -267,6 +296,10 @@
 		  var v8_sample_move_table_after_load = this.$.v8_sample_move_table_after_load;
 	      var v8_sample_start_table_before_load = this.$.v8_sample_start_table_before_load;
 		  var v8_sample_move_table_before_load = this.$.v8_sample_move_table_before_load;
+	      var v8_jstype_start_table_after_load = this.$.v8_jstype_start_table_after_load;
+		  var v8_jstype_move_table_after_load = this.$.v8_jstype_move_table_after_load;
+	      var v8_jstype_start_table_before_load = this.$.v8_jstype_start_table_before_load;
+		  var v8_jstype_move_table_before_load = this.$.v8_jstype_move_table_before_load;
 	      // var handling_start_v8_table = this.$.handling_start_v8_table;
 		  // var handling_move_v8_table = this.$.handling_move_v8_table;
 		  // var queuing_move_table = this.$.queuing_move_table;
@@ -282,10 +315,15 @@
 		  drawTable(handlingValue.moveHandlersAfterLoad, handling_move_table_after_load, handlingValue.moveCountAfterLoad, 'Handlering touch move after page load');
 		  
 		  
-		  drawTable(handlingValue.v8ExcuteStartAfterLoad, v8_sample_start_table_after_load, 1, 'V8 samples touch start after page load');
-		  drawTable(handlingValue.v8ExcuteMoveAfterLoad, v8_sample_move_table_after_load, 1, 'V8 samples touch move after page load');
-		  drawTable(handlingValue.v8ExcuteStartBeforeLoad, v8_sample_start_table_before_load, 1, 'V8 samples touch start before page load');
-		  drawTable(handlingValue.v8ExcuteMoveBeforeLoad, v8_sample_move_table_before_load, 1, 'V8 samples touch move before page load');
+		  drawTable(handlingValue.v8ExcuteStartAfterLoad, v8_sample_start_table_after_load, 1, 'V8 native function touch start after page load');
+		  drawTable(handlingValue.v8ExcuteMoveAfterLoad, v8_sample_move_table_after_load, 1, 'V8 native function touch move after page load');
+		  drawTable(handlingValue.v8ExcuteStartBeforeLoad, v8_sample_start_table_before_load, 1, 'V8 native function touch start before page load');
+		  drawTable(handlingValue.v8ExcuteMoveBeforeLoad, v8_sample_move_table_before_load, 1, 'V8 native function touch move before page load');
+		  
+		  drawTable(handlingValue.v8JstypeStartAfterLoad, v8_jstype_start_table_after_load, 1, 'V8 js type touch start after page load');
+		  drawTable(handlingValue.v8JstypeMoveAfterLoad, v8_jstype_move_table_after_load, 1, 'V8 js type touch move after page load');
+		  drawTable(handlingValue.v8JstypeStartBeforeLoad, v8_jstype_start_table_before_load, 1, 'V8 js type touch start before page load');
+		  drawTable(handlingValue.v8JstypeMoveBeforeLoad, v8_jstype_move_table_before_load, 1, 'V8 js type touch move before page load');
 		  
 	 
 		  // drawTable(handlingValue.v8ExcuteStart, handling_start_v8_table, 1, 'V8Excute in touch start');
