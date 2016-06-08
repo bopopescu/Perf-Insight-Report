@@ -1,6 +1,5 @@
 <!DOCTYPE HTML>
 <link rel="import" href="/perf_insights/ui/reports/pi_report.html">
-<link rel="import" href="/tracing/ui/units/histogram_span.html">
 <link rel="import" href="/tracing/ui/base/pie_chart.html">
 
 <polymer-element name="pi-ui-r-my-two-input-event-report"
@@ -23,6 +22,12 @@
 	<tr-ui-b-table id="v8_jstype_move_table_after_load"></tr-ui-b-table>
 	<tr-ui-b-table id="handling_start_v8_table"></tr-ui-b-table>
 	<tr-ui-b-table id="handling_move_v8_table"></tr-ui-b-table>
+    <tr-ui-b-table id="queuing_move_table_after_load"></tr-ui-b-table>
+    <tr-ui-b-table id="queuing_move_table_before_load"></tr-ui-b-table>
+    <tr-ui-b-table id="v8_sample_queuing_move_table_after_load"></tr-ui-b-table>
+    <tr-ui-b-table id="v8_sample_queuing_move_table_before_load"></tr-ui-b-table>
+    <tr-ui-b-table id="v8_jstype_queuing_move_table_after_load"></tr-ui-b-table>
+    <tr-ui-b-table id="v8_jstype_queuing_move_table_before_load"></tr-ui-b-table>
 	<tr-ui-b-table id="queuing_move_table"></tr-ui-b-table>
 	<tr-ui-b-table id="queuing_move_v8_table"></tr-ui-b-table>
 	<div id="chart" style="height:625px;width:1625px;"></div>
@@ -64,8 +69,11 @@
 	var eventRows = [];
     for (var event in allEvents) {
 		//if (allEvents[event] > 0) {
+			var ename = event;
+			if (event.length > 3 && event.slice(-3)=='abc')
+			  ename = event.slice(0, -3);
 	        eventRows.push({
-	          title: event,
+	          title: ename,
 	          count: allEvents[event]/count
 	        });	
 			//}       
@@ -74,12 +82,7 @@
     table.rebuild();
 
   }
-  
-  function getV8ExecuteDomain(slice) {
-	  var samples = slice.parentContainer.samples;
-  	
-  }
-  
+
   function getLongestHandlingTimes(results, percent) {
   	var handlingStartTimes = [];
   	var handlingMoveTimes = [];
@@ -138,11 +141,12 @@
 			// if (key.indexOf('V8.Execute') > -1)
 //  			  v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
 		}
-		for (var key in longestTouchStartsAfterLoad[i].nativeFunc) {
+		for (var key in longestTouchStartsAfterLoad[i].nativeName) {
+			console.log('longestTouchStartsAfterLoad ' + key+ ' ' + longestTouchStartsAfterLoad[i].nativeName[key]);
 			if (key in v8ExcuteStartAfterLoad) {
-			  v8ExcuteStartAfterLoad[key] += longestTouchStartsAfterLoad[i].nativeFunc[key];
+			  v8ExcuteStartAfterLoad[key] += longestTouchStartsAfterLoad[i].nativeName[key];
 			} else {
-			  v8ExcuteStartAfterLoad[key] = longestTouchStartsAfterLoad[i].nativeFunc[key];
+			  v8ExcuteStartAfterLoad[key] = longestTouchStartsAfterLoad[i].nativeName[key];
 			}
 		}
 		
@@ -161,11 +165,12 @@
 			// if (key.indexOf('V8.Execute') > -1)
 // 				v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
 		}
-		for (var key in longestTouchStartsBeforeLoad[i].nativeFunc) {
+		for (var key in longestTouchStartsBeforeLoad[i].nativeName) {
+			console.log('longestTouchStartsBeforeLoad ' + key+ ' ' + longestTouchStartsBeforeLoad[i].nativeName[key]);
 			if (key in v8ExcuteStartBeforeLoad) {
-			  v8ExcuteStartBeforeLoad[key] += longestTouchStartsBeforeLoad[i].nativeFunc[key];
+			  v8ExcuteStartBeforeLoad[key] += longestTouchStartsBeforeLoad[i].nativeName[key];
 			} else {
-			  v8ExcuteStartBeforeLoad[key] = longestTouchStartsBeforeLoad[i].nativeFunc[key];
+			  v8ExcuteStartBeforeLoad[key] = longestTouchStartsBeforeLoad[i].nativeName[key];
 			}
 		}
 		v8JstypeStartBeforeLoad['native'] += longestTouchStartsBeforeLoad[i].jsNative['native'];
@@ -183,11 +188,12 @@
 			// if (key.indexOf('V8.Execute') > -1)
 // 				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
 		}
-		for (var key in longestTouchMovesAfterLoad[i].nativeFunc) {
+		for (var key in longestTouchMovesAfterLoad[i].nativeName) {
+			console.log('longestTouchMovesAfterLoad ' + key+ ' ' + longestTouchMovesAfterLoad[i].nativeName[key]);
 			if (key in v8ExcuteMoveAfterLoad) {
-			  v8ExcuteMoveAfterLoad[key] += longestTouchMovesAfterLoad[i].nativeFunc[key];
+			  v8ExcuteMoveAfterLoad[key] += longestTouchMovesAfterLoad[i].nativeName[key];
 			} else {
-			  v8ExcuteMoveAfterLoad[key] = longestTouchMovesAfterLoad[i].nativeFunc[key];
+			  v8ExcuteMoveAfterLoad[key] = longestTouchMovesAfterLoad[i].nativeName[key];
 			}
 		}
 		v8JstypeMoveAfterLoad['native'] += longestTouchMovesAfterLoad[i].jsNative['native'];
@@ -205,11 +211,12 @@
 			// if (key.indexOf('V8.Execute') > -1)
 // 				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
 		}
-		for (var key in longestTouchMovesBeforeLoad[i].nativeFunc) {
+		for (var key in longestTouchMovesBeforeLoad[i].nativeName) {
+			console.log('longestTouchMovesBeforeLoad ' + key+ ' ' + longestTouchMovesBeforeLoad[i].nativeName[key]);
 			if (key in v8ExcuteMoveBeforeLoad) {
-			  v8ExcuteMoveBeforeLoad[key] += longestTouchMovesBeforeLoad[i].nativeFunc[key];
+			  v8ExcuteMoveBeforeLoad[key] += longestTouchMovesBeforeLoad[i].nativeName[key];
 			} else {
-			  v8ExcuteMoveBeforeLoad[key] = longestTouchMovesBeforeLoad[i].nativeFunc[key];
+			  v8ExcuteMoveBeforeLoad[key] = longestTouchMovesBeforeLoad[i].nativeName[key];
 			}
 		}
 		v8JstypeMoveBeforeLoad['native'] += longestTouchMovesBeforeLoad[i].jsNative['native'];
@@ -243,33 +250,96 @@
   
   function getLongestQueuingtTimes(results, percent) {
 	var queuingMoveTimes = [];
+	var queuingMoveTimeAfterLoad = [];
+	var queuingMoveTimeBeforeLoad = [];
+	var moveQueuingAfterLoad = {};
+	var moveQueuingBeforeLoad = {};
+	var v8ExcuteQueuingMoveAfterLoad = {};
+	var v8ExcuteQueuingMoveBeforeLoad = {};
+	var v8JstypeMoveAfterLoad = {native: 0, nonnative: 0, firstParty: 0, thirdParty: 0};
+	var v8JstypeMoveBeforeLoad = {native: 0, nonnative: 0, firstParty: 0, thirdParty: 0};
+	
 	results.forEach(function(result) {
 	  if (result.pairs.queuing_self_time != null)
 	    queuingMoveTimes = queuingMoveTimes.concat(result.pairs.queuing_self_time);
 	});
 	
-	queuingMoveTimes.sort(function(a, b) {return b.duration-a.duration});
-	var longestQueuing = queuingMoveTimes.slice(0, Math.ceil(queuingMoveTimes.length/percent));
-	var moveHandlers = {};
-	var v8ExcuteMove = [];
+	for (var i = 0; i < queuingMoveTimes.length; i++) {
+	  if (queuingMoveTimes[i].pageloads)
+		queuingMoveTimeAfterLoad.push(queuingMoveTimes[i]);
+	  else
+		queuingMoveTimeBeforeLoad.push(queuingMoveTimes[i]);
+	}
 	
-	for (var i = 0; i < longestQueuing.length; i++) {
-		for (var key in longestQueuing[i].selfTime) {
-			if (key in moveHandlers) {
-			  moveHandlers[key] += longestQueuing[i].selfTime[key];
+	queuingMoveTimeAfterLoad.sort(function(a, b) {return b.duration-a.duration});
+	var longestQueuingMoveTimeAfterLoad = queuingMoveTimeAfterLoad.slice(0, Math.ceil(queuingMoveTimeAfterLoad.length/percent));
+	
+	queuingMoveTimeBeforeLoad.sort(function(a, b) {return b.duration-a.duration});
+	var longestQueuingMoveTimeBeforeLoad = queuingMoveTimeBeforeLoad.slice(0, Math.ceil(queuingMoveTimeBeforeLoad.length/percent));
+	
+	for (var i = 0; i < longestQueuingMoveTimeAfterLoad.length; i++) {
+		for (var key in longestQueuingMoveTimeAfterLoad[i].selfTime) {
+			if (key in moveQueuingAfterLoad) {
+			  moveQueuingAfterLoad[key] += longestQueuingMoveTimeAfterLoad[i].selfTime[key];
 			} else {
-			  moveHandlers[key] = longestQueuing[i].selfTime[key];
+			  moveQueuingAfterLoad[key] = longestQueuingMoveTimeAfterLoad[i].selfTime[key];
 			}
-			if (key.indexOf('V8.Execute') > -1)
-				v8ExcuteMove.push(longestQueuing[i].selfTime[key]);
+			// if (key.indexOf('V8.Execute') > -1)
+// 				v8ExcuteMove.push(longestQueuing[i].selfTime[key]);
 		}
+		
+		for (var key in longestQueuingMoveTimeAfterLoad[i].nativeName) {
+			console.log('longestQueuingMoveTimeAfterLoad ' + key+ ' ' + longestQueuingMoveTimeAfterLoad[i].nativeName[key]);
+			if (key in v8ExcuteQueuingMoveAfterLoad) {
+			  v8ExcuteQueuingMoveAfterLoad[key] += longestQueuingMoveTimeAfterLoad[i].nativeName[key];
+			} else {
+			  v8ExcuteQueuingMoveAfterLoad[key] = longestQueuingMoveTimeAfterLoad[i].nativeName[key];
+			}
+		}
+		
+		v8JstypeMoveAfterLoad['native'] += longestQueuingMoveTimeAfterLoad[i].jsNative['native'];
+		v8JstypeMoveAfterLoad['nonnative'] += longestQueuingMoveTimeAfterLoad[i].jsNative['nonnative'];
+		v8JstypeMoveAfterLoad['firstParty'] += longestQueuingMoveTimeAfterLoad[i].jsSource['firstParty'];
+		v8JstypeMoveAfterLoad['thirdParty'] += longestQueuingMoveTimeAfterLoad[i].jsSource['thirdParty'];
+		
+	}
+	
+	for (var i = 0; i < longestQueuingMoveTimeBeforeLoad.length; i++) {
+		for (var key in longestQueuingMoveTimeBeforeLoad[i].selfTime) {
+			if (key in moveQueuingBeforeLoad) {
+			  moveQueuingBeforeLoad[key] += longestQueuingMoveTimeBeforeLoad[i].selfTime[key];
+			} else {
+			  moveQueuingBeforeLoad[key] = longestQueuingMoveTimeBeforeLoad[i].selfTime[key];
+			}
+			// if (key.indexOf('V8.Execute') > -1)
+// 				v8ExcuteMove.push(longestQueuing[i].selfTime[key]);
+		}
+		
+		for (var key in longestQueuingMoveTimeBeforeLoad[i].nativeName) {
+			console.log('longestQueuingMoveTimeBeforeLoad ' + key+ ' ' + longestQueuingMoveTimeBeforeLoad[i].nativeName[key]);
+			if (key in v8ExcuteQueuingMoveBeforeLoad) {
+			  v8ExcuteQueuingMoveBeforeLoad[key] += longestQueuingMoveTimeBeforeLoad[i].nativeName[key];
+			} else {
+			  v8ExcuteQueuingMoveBeforeLoad[key] = longestQueuingMoveTimeBeforeLoad[i].nativeName[key];
+			}
+		}
+		
+		v8JstypeMoveBeforeLoad['native'] += longestQueuingMoveTimeBeforeLoad[i].jsNative['native'];
+		v8JstypeMoveBeforeLoad['nonnative'] += longestQueuingMoveTimeBeforeLoad[i].jsNative['nonnative'];
+		v8JstypeMoveBeforeLoad['firstParty'] += longestQueuingMoveTimeBeforeLoad[i].jsSource['firstParty'];
+		v8JstypeMoveBeforeLoad['thirdParty'] += longestQueuingMoveTimeBeforeLoad[i].jsSource['thirdParty'];
 		
 	}
 	
     var value = {
-	  count: longestQueuing.length,
-	  moveHandlers: moveHandlers,
-	  v8ExcuteMove: v8ExcuteMove
+	  countAfterPage: longestQueuingMoveTimeAfterLoad.length,
+	  countBeforePage: longestQueuingMoveTimeBeforeLoad.length,	
+	  moveQueuingAfterLoad: moveQueuingAfterLoad,
+	  moveQueuingBeforeLoad: moveQueuingBeforeLoad,
+	  v8ExcuteQueuingMoveAfterLoad: v8ExcuteQueuingMoveAfterLoad,
+	  v8ExcuteQueuingMoveBeforeLoad: v8ExcuteQueuingMoveBeforeLoad,
+	  v8JstypeMoveAfterLoad: v8JstypeMoveAfterLoad,
+	  v8JstypeMoveBeforeLoad: v8JstypeMoveBeforeLoad
     };
     return value;
   }
@@ -300,32 +370,46 @@
 		  var v8_jstype_move_table_after_load = this.$.v8_jstype_move_table_after_load;
 	      var v8_jstype_start_table_before_load = this.$.v8_jstype_start_table_before_load;
 		  var v8_jstype_move_table_before_load = this.$.v8_jstype_move_table_before_load;
-	      // var handling_start_v8_table = this.$.handling_start_v8_table;
+		  
+		  
+		  var queuing_move_table_after_load = this.$.queuing_move_table_after_load;
+		  var queuing_move_table_before_load = this.$.queuing_move_table_before_load;
+		  var v8_sample_queuing_move_table_after_load = this.$.v8_sample_queuing_move_table_after_load;
+		  var v8_sample_queuing_move_table_before_load = this.$.v8_sample_queuing_move_table_before_load;
+		  var v8_jstype_queuing_move_table_after_load = this.$.v8_jstype_queuing_move_table_after_load;
+		  var v8_jstype_queuing_move_table_before_load = this.$.v8_jstype_queuing_move_table_before_load;
+		  
+   	      // var handling_start_v8_table = this.$.handling_start_v8_table;
 		  // var handling_move_v8_table = this.$.handling_move_v8_table;
 		  // var queuing_move_table = this.$.queuing_move_table;
 		  // var queuing_move_v8_table = this.$.queuing_move_v8_table;
 		  
 		  var percent = 1;
 	      var handlingValue = getLongestHandlingTimes(this.mapResults_, percent);
-		  // var queuingValue = getLongestQueuingtTimes(this.mapResults_, percent);
+		  var queuingValue = getLongestQueuingtTimes(this.mapResults_, percent);
 					  
 		  drawTable(handlingValue.startHandlersBeforeLoad, handling_start_table_before_load, handlingValue.startCountBeforeLoad, 'Handlering touch start before page load');
 		  drawTable(handlingValue.moveHandlersBeforeLoad, handling_move_table_before_load, handlingValue.moveCountBeforeLoad, 'Handlering touch move before page load');
 		  drawTable(handlingValue.startHandlersAfterLoad, handling_start_table_after_load, handlingValue.startCountAfterLoad, 'Handlering touch start after page load');
 		  drawTable(handlingValue.moveHandlersAfterLoad, handling_move_table_after_load, handlingValue.moveCountAfterLoad, 'Handlering touch move after page load');
+		  drawTable(queuingValue.moveQueuingAfterLoad, queuing_move_table_after_load, queuingValue.countAfterPage, 'Queuing touch move after page load');
+		  drawTable(queuingValue.moveQueuingBeforeLoad, queuing_move_table_before_load, queuingValue.countBeforePage, 'Queuing touch move before page load');
 		  
 		  
 		  drawTable(handlingValue.v8ExcuteStartAfterLoad, v8_sample_start_table_after_load, 1, 'V8 native function touch start after page load');
 		  drawTable(handlingValue.v8ExcuteMoveAfterLoad, v8_sample_move_table_after_load, 1, 'V8 native function touch move after page load');
 		  drawTable(handlingValue.v8ExcuteStartBeforeLoad, v8_sample_start_table_before_load, 1, 'V8 native function touch start before page load');
 		  drawTable(handlingValue.v8ExcuteMoveBeforeLoad, v8_sample_move_table_before_load, 1, 'V8 native function touch move before page load');
+		  drawTable(queuingValue.v8ExcuteQueuingMoveAfterLoad, v8_sample_queuing_move_table_after_load, 1, 'V8 native function queuing touch move after page load');
+		  drawTable(queuingValue.v8ExcuteQueuingMoveBeforeLoad, v8_sample_queuing_move_table_before_load, 1, 'V8 native function queuing touch move before page load');
 		  
 		  drawTable(handlingValue.v8JstypeStartAfterLoad, v8_jstype_start_table_after_load, 1, 'V8 js type touch start after page load');
 		  drawTable(handlingValue.v8JstypeMoveAfterLoad, v8_jstype_move_table_after_load, 1, 'V8 js type touch move after page load');
 		  drawTable(handlingValue.v8JstypeStartBeforeLoad, v8_jstype_start_table_before_load, 1, 'V8 js type touch start before page load');
 		  drawTable(handlingValue.v8JstypeMoveBeforeLoad, v8_jstype_move_table_before_load, 1, 'V8 js type touch move before page load');
+		  drawTable(queuingValue.v8JstypeMoveAfterLoad, v8_jstype_queuing_move_table_after_load, 1, 'V8 js type queuing touch move after page load');
+		  drawTable(queuingValue.v8JstypeMoveBeforeLoad, v8_jstype_queuing_move_table_before_load, 1, 'V8 js type queuing touch move before page load');
 		  
-	 
 		  // drawTable(handlingValue.v8ExcuteStart, handling_start_v8_table, 1, 'V8Excute in touch start');
 		  // drawTable(handlingValue.v8ExcuteMove, handling_move_v8_table, 1, 'V8Excute in touch move');
 		  

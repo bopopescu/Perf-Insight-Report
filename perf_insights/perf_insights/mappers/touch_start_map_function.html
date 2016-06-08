@@ -21,9 +21,75 @@ tr.exportTo('pi.m', function() {
   	  return result;
     }
 	
+  function getV8ExecuteDomain(slice, jsNative, jsSource, nativeName) {
+  	var range = new tr.b.Range();
+  	slice.addBoundsToRange(range);
+  	var filtered = range.filterArray(
+  	    slice.parentContainer.samples,
+  	    function(sample) {return sample.start;});
+  	console.log(filtered.length + ' ' + slice.title + ' ' + slice.start + ' ' + slice.duration);	
+  	for (var i = 0; i < filtered.length; i++) {
+  	  var title = filtered[i].stackTrace.map(function(f) { return f.title; });
+  	  // var slicetitle = tr.e.chrome.SliceTitleFixer.fromEvent(slice);
+        var sdomain =  filtered[i].leafStackFrame.domain;
+  	  console.log("title " + title);
+  	  if (filtered[i].leafStackFrame != null) {
+  		  var isNative = false;
+  		  if (filtered[i].leafStackFrame.sourceInfo != null)
+  		   isNative = filtered[i].leafStackFrame.sourceInfo.isNative;
+  		  var title = filtered[i].leafStackFrame.title.split(" ");
+  		  var domain = filtered[i].leafStackFrame.domain;
+  		  var parentFrame = filtered[i].leafStackFrame.parentFrame;
+  		  while (domain == null && parentFrame != null) {
+  			  domain = parentFrame.domain;
+  			  parentFrame = parentFrame.parentFrame;
+  		  }
+  		  var pageDomain = filtered[i].leafStackFrame.domain;
+  		  parentFrame = filtered[i].leafStackFrame.parentFrame;
+  		  while (parentFrame != null) {
+  			  pageDomain = parentFrame.domain;
+  			  parentFrame = parentFrame.parentFrame;
+  		  }
+
+  	  	  var fname = title[0];
+  		  if (isNative && (fname!=null && fname!='')) {	  	
+  				fname = title[0] + 'abc';
+  				if (fname in nativeName)
+  				  nativeName[fname] += 1;
+  				else
+  				  nativeName[fname] = 1;
+  			  	jsNative['native']++;			
+  		  } else
+  			jsNative['nonnative']++;
+  		  if (domain == pageDomain)
+  			jsSource['firstParty']++;
+  		  else
+  			jsSource['thirdParty']++;
+	  	  
+  	  }
+      }
+    }
+	
+    function pageload(model) {
+  	var processes = model.getAllProcesses();
+  	for (var i = 0; i < processes.length; i++) {
+  	  // console.log(processes[i].name+ ' ' + processes[i].instantEvents.length);
+  	  var instantEvents = processes[i].instantEvents;
+    	  for (var j = 0; j < instantEvents.length; j++) {
+    	    // console.log(instantEvents[j].title + ' ' + instantEvents[j].start);
+  		if (instantEvents[j].title == 'LoadFinished')
+  			return instantEvents[j].start;
+  	  }
+  	}
+  	return 0;	
+    }
+	
     function getQueuingTime(model) {
 	  var touchMoveTimes = [];
 	  var webviewTimes = [];
+	  var pageloads = [];
+	  var loadFinishTime = pageload(model);
+
 	  model.getAllThreads().forEach(function(thread) {
 	    var gestureScrollBegins = getAllSlices(thread, 'InputLatency::GestureScrollBegin');
 	  	var touchMoves = getAllSlices(thread, 'InputLatency::TouchMove');
@@ -33,6 +99,7 @@ tr.exportTo('pi.m', function() {
     	  	if (gestureScrollBegins[i].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time == touchMoves[j].args.data.INPUT_EVENT_LATENCY_ORIGINAL_COMPONENT.time) {
 	  		  var touchMoveSent = touchMoves[j].args.data.INPUT_EVENT_LATENCY_BEGIN_RWH_COMPONENT.time;
 			  var forwardToRendererMoveTime = model.convertTimestampToModelTime('traceEventClock', touchMoveSent);
+			  var isPageLoaded = touchMoves[j].start >= loadFinishTime ? true : false;
 			  model.flowEvents.forEach(function(flow) {
 			      // Follow the FlowEvent whichs connects the touchmove and EventHandler. 
 				  if (flow.args.trace_id == touchMoves[j].args.data.trace_id) {
@@ -46,6 +113,7 @@ tr.exportTo('pi.m', function() {
 						  var webview = flowEvent.endSlice.subSlices[i];
 						  touchMoveTimes.push(forwardToRendererMoveTime);
 						  webviewTimes.push(webview);
+						  pageloads.push(isPageLoaded);
 						  console.log(forwardToRendererMoveTime + ' | ' + webview.start);	
 						}
 					  }
@@ -70,7 +138,8 @@ tr.exportTo('pi.m', function() {
 // 		}
 		var data = {
 			touchMoveTimes: touchMoveTimes,
-			webviewTimes: webviewTimes
+			webviewTimes: webviewTimes,
+			pageloads: pageloads
 		};
 		return data;
 	}
@@ -78,11 +147,17 @@ tr.exportTo('pi.m', function() {
 	function queuingTimeMapFunction(model) {
 		var data = getQueuingTime(model);
 		var queuingTime = [];
+	
 		for	(var i = 0; i < data.webviewTimes.length; i++) {
 			// Find a renderer thread
 			var renderMainThread = data.webviewTimes[i].parentContainer;
 			console.log(' renderMainThread ' + renderMainThread.name + '   ' + renderMainThread.tid);
 			var handlers = {};
+			var jsNative = {native:0,
+			                nonnative: 0};
+			var jsSource = {firstParty: 0,
+			                thirdParty: 0};
+			var nativeName = {};
 			renderMainThread.sliceGroup.slices.forEach(function(slice) {
 				var sliceEndTime = slice.start + slice.selfTime;
 				if (sliceEndTime > data.touchMoveTimes[i] && sliceEndTime <= data.webviewTimes[i].start) {
@@ -92,12 +167,19 @@ tr.exportTo('pi.m', function() {
 					} else {
 						handlers[slice.title] = slice.selfTime;
 					}
+					if (slice.title == 'V8.Execute') {
+				      getV8ExecuteDomain(slice, jsNative, jsSource, nativeName);
+					}
 				}
 
 			});
 	  	    var value = {
 	  		  duration: data.webviewTimes[i].start - data.touchMoveTimes[i],
-			  selfTime: handlers
+			  selfTime: handlers,
+			  pageloads: data.pageloads[i],
+	          jsNative: jsNative,
+	          jsSource: jsSource,
+	          nativeName: nativeName	
 	  	    };
 			queuingTime.push(value);
 		}

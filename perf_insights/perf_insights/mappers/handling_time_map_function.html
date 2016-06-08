@@ -31,8 +31,7 @@ tr.exportTo('pi.m', function() {
 	return touchStarts[touchStarts.length-1];
   } 
   	
-  function getV8ExecuteDomain(slice, jsNative, jsSource, nativeFunc) {
-	// var samples = slice.parentContainer.samples;
+  function getV8ExecuteDomain(slice, jsNative, jsSource, nativeName) {
 	var range = new tr.b.Range();
 	slice.addBoundsToRange(range);
 	var filtered = range.filterArray(
@@ -44,16 +43,6 @@ tr.exportTo('pi.m', function() {
 	  // var slicetitle = tr.e.chrome.SliceTitleFixer.fromEvent(slice);
       var sdomain =  filtered[i].leafStackFrame.domain;
 	  console.log("title " + title);
-	  // var rthread = slice.parentContainer;
-// 	  rthread.asyncSliceGroup.slices.forEach(function(slice) {
-// 	            if (slice.viewSubGroupTitle == 'netlog') {
-// 				  	  console.log("viewSubGroupTitle " + slice.title + "asyncslice url  " + slice.url);
-//
-// 	            }
-// 			});
-	  // console.log("  sdomain  " + sdomain  + " renderer  " + slice.parentContainer.parent.name + " renderer pid " + slice.parentContainer.parent.domain);
-	  // if (sourceInfo === undefined ||
-        //    !(sourceInfo instanceof tr.model.source_info.JSSourceInfo))
 	  if (filtered[i].leafStackFrame != null) {
 		  var isNative = false;
 		  if (filtered[i].leafStackFrame.sourceInfo != null)
@@ -63,27 +52,23 @@ tr.exportTo('pi.m', function() {
 		  var parentFrame = filtered[i].leafStackFrame.parentFrame;
 		  while (domain == null && parentFrame != null) {
 			  domain = parentFrame.domain;
-			  // next parent
 			  parentFrame = parentFrame.parentFrame;
 		  }
-		  // console.log('domain ' + domain);
-	
 		  var pageDomain = filtered[i].leafStackFrame.domain;
 		  parentFrame = filtered[i].leafStackFrame.parentFrame;
 		  while (parentFrame != null) {
 			  pageDomain = parentFrame.domain;
-			  // next parent
 			  parentFrame = parentFrame.parentFrame;
 		  }
-		  //console.log('pageDomain ' + pageDomain);
-		  // console.log("isNative " + isNative + " funct " + title[0]);  
-	  
-		  if (isNative) {
-		  	jsNative['native']++;
-			if (title[0] in nativeFunc)
-			  nativeFunc[title[0]]++;
-			else
-			  nativeFunc[title[0]] = 1;
+
+	  	  var fname = title[0];
+		  if (isNative && (fname!=null && fname!='')) {	  	
+				fname = title[0] + 'abc';
+				if (fname in nativeName)
+				  nativeName[fname] += 1;
+				else
+				  nativeName[fname] = 1;
+			  	jsNative['native']++;			
 		  } else
 			jsNative['nonnative']++;
 		  if (domain == pageDomain)
@@ -103,8 +88,8 @@ tr.exportTo('pi.m', function() {
 	                nonnative: 0};
 	var jsSource = {firstParty: 0,
 	                thirdParty: 0};
-	var nativeFunc = {};
-    
+	var nativeName = {};    
+	
 	model.flowEvents.forEach(function(flow) {
 	    // Follow the FlowEvent whichs connects the touchmove and EventHandler.
 		if (flow.args.trace_id == id) {
@@ -123,7 +108,7 @@ tr.exportTo('pi.m', function() {
 					if (eventHandler.title == 'V8.Execute') {
 				      v8Execute.push(eventHandler);
 					  // console.log('trace id ' + id);
-					  getV8ExecuteDomain(eventHandler, jsNative, jsSource, nativeFunc);
+					  getV8ExecuteDomain(eventHandler, jsNative, jsSource, nativeName);
 					}
 					
 					if (eventHandler.title in handlers) {
@@ -146,15 +131,15 @@ tr.exportTo('pi.m', function() {
 	console.log('firstParty ' + jsSource['firstParty'] + '   thirdParty ' + jsSource['thirdParty']);
 	console.log('native ' + jsNative['native'] + '   nonnative ' + jsNative['nonnative']);
 	console.log('pageloaded ' + touch.pageloaded + '   type ' + type);
-	for(var f in nativeFunc)
-	  console.log('native ' + f);
+	for(var f in nativeName)
+	  console.log('native ' + f + ' ' + nativeName[f]);
 	var value = {
 	  pageloaded: touch.pageloaded,
       duration: touch.duration,
 	  selfTime: handlers,
 	  jsNative: jsNative,
 	  jsSource: jsSource,
-	  nativeFunc: nativeFunc
+	  nativeName: nativeName
 	};
 	return value; 
   }
