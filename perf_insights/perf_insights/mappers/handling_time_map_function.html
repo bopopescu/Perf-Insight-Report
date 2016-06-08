@@ -31,7 +31,7 @@ tr.exportTo('pi.m', function() {
 	return touchStarts[touchStarts.length-1];
   } 
   	
-  function getV8ExecuteDomain(slice, jsNative, jsSource, nativeFunc) {
+  function getV8ExecuteDomain(slice, jsNative, jsSource, nativeName) {
 	// var samples = slice.parentContainer.samples;
 	var range = new tr.b.Range();
 	slice.addBoundsToRange(range);
@@ -77,13 +77,16 @@ tr.exportTo('pi.m', function() {
 		  }
 		  //console.log('pageDomain ' + pageDomain);
 		  // console.log("isNative " + isNative + " funct " + title[0]);  
-	  
-		  if (isNative) {
-		  	jsNative['native']++;
-			if (title[0] in nativeFunc)
-			  nativeFunc[title[0]]++;
-			else
-			  nativeFunc[title[0]] = 1;
+	  	  var fname = title[0];
+		  if (isNative && (fname!=null && fname!='')) {	  	
+				fname = title[0] + 'abc';
+				if (fname in nativeName)
+				  nativeName[fname] += 1;
+				else
+				  nativeName[fname] = 1;
+			  	jsNative['native']++;
+			
+				console.log('nativeName ' + fname + ' --- ' + nativeName[fname]);
 		  } else
 			jsNative['nonnative']++;
 		  if (domain == pageDomain)
@@ -103,7 +106,7 @@ tr.exportTo('pi.m', function() {
 	                nonnative: 0};
 	var jsSource = {firstParty: 0,
 	                thirdParty: 0};
-	var nativeFunc = {};
+	var nativeName = {};
     
 	model.flowEvents.forEach(function(flow) {
 	    // Follow the FlowEvent whichs connects the touchmove and EventHandler.
@@ -123,7 +126,7 @@ tr.exportTo('pi.m', function() {
 					if (eventHandler.title == 'V8.Execute') {
 				      v8Execute.push(eventHandler);
 					  // console.log('trace id ' + id);
-					  getV8ExecuteDomain(eventHandler, jsNative, jsSource, nativeFunc);
+					  getV8ExecuteDomain(eventHandler, jsNative, jsSource, nativeName);
 					}
 					
 					if (eventHandler.title in handlers) {
@@ -146,15 +149,15 @@ tr.exportTo('pi.m', function() {
 	console.log('firstParty ' + jsSource['firstParty'] + '   thirdParty ' + jsSource['thirdParty']);
 	console.log('native ' + jsNative['native'] + '   nonnative ' + jsNative['nonnative']);
 	console.log('pageloaded ' + touch.pageloaded + '   type ' + type);
-	for(var f in nativeFunc)
-	  console.log('native ' + f);
+	for(var f in nativeName)
+	  console.log('native ' + f + ' ' + nativeName[f]);
 	var value = {
 	  pageloaded: touch.pageloaded,
       duration: touch.duration,
 	  selfTime: handlers,
 	  jsNative: jsNative,
 	  jsSource: jsSource,
-	  nativeFunc: nativeFunc
+	  nativeName: nativeName
 	};
 	return value; 
   }

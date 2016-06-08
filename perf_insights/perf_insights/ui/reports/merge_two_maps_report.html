@@ -64,8 +64,11 @@
 	var eventRows = [];
     for (var event in allEvents) {
 		//if (allEvents[event] > 0) {
+			var ename = event;
+			if (event.length > 3 && event.slice(-3)=='abc')
+			  ename = event.slice(0, -3);
 	        eventRows.push({
-	          title: event,
+	          title: ename,
 	          count: allEvents[event]/count
 	        });	
 			//}       
@@ -138,11 +141,12 @@
 			// if (key.indexOf('V8.Execute') > -1)
 //  			  v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
 		}
-		for (var key in longestTouchStartsAfterLoad[i].nativeFunc) {
+		for (var key in longestTouchStartsAfterLoad[i].nativeName) {
+			console.log('longestTouchStartsAfterLoad ' + key+ ' ' + longestTouchStartsAfterLoad[i].nativeName[key]);
 			if (key in v8ExcuteStartAfterLoad) {
-			  v8ExcuteStartAfterLoad[key] += longestTouchStartsAfterLoad[i].nativeFunc[key];
+			  v8ExcuteStartAfterLoad[key] += longestTouchStartsAfterLoad[i].nativeName[key];
 			} else {
-			  v8ExcuteStartAfterLoad[key] = longestTouchStartsAfterLoad[i].nativeFunc[key];
+			  v8ExcuteStartAfterLoad[key] = longestTouchStartsAfterLoad[i].nativeName[key];
 			}
 		}
 		
@@ -161,11 +165,12 @@
 			// if (key.indexOf('V8.Execute') > -1)
 // 				v8ExcuteStart.push(longestTouchStarts[i].selfTime[key]);
 		}
-		for (var key in longestTouchStartsBeforeLoad[i].nativeFunc) {
+		for (var key in longestTouchStartsBeforeLoad[i].nativeName) {
+			console.log('longestTouchStartsBeforeLoad ' + key+ ' ' + longestTouchStartsBeforeLoad[i].nativeName[key]);
 			if (key in v8ExcuteStartBeforeLoad) {
-			  v8ExcuteStartBeforeLoad[key] += longestTouchStartsBeforeLoad[i].nativeFunc[key];
+			  v8ExcuteStartBeforeLoad[key] += longestTouchStartsBeforeLoad[i].nativeName[key];
 			} else {
-			  v8ExcuteStartBeforeLoad[key] = longestTouchStartsBeforeLoad[i].nativeFunc[key];
+			  v8ExcuteStartBeforeLoad[key] = longestTouchStartsBeforeLoad[i].nativeName[key];
 			}
 		}
 		v8JstypeStartBeforeLoad['native'] += longestTouchStartsBeforeLoad[i].jsNative['native'];
@@ -183,11 +188,12 @@
 			// if (key.indexOf('V8.Execute') > -1)
 // 				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
 		}
-		for (var key in longestTouchMovesAfterLoad[i].nativeFunc) {
+		for (var key in longestTouchMovesAfterLoad[i].nativeName) {
+			console.log('longestTouchMovesAfterLoad ' + key+ ' ' + longestTouchMovesAfterLoad[i].nativeName[key]);
 			if (key in v8ExcuteMoveAfterLoad) {
-			  v8ExcuteMoveAfterLoad[key] += longestTouchMovesAfterLoad[i].nativeFunc[key];
+			  v8ExcuteMoveAfterLoad[key] += longestTouchMovesAfterLoad[i].nativeName[key];
 			} else {
-			  v8ExcuteMoveAfterLoad[key] = longestTouchMovesAfterLoad[i].nativeFunc[key];
+			  v8ExcuteMoveAfterLoad[key] = longestTouchMovesAfterLoad[i].nativeName[key];
 			}
 		}
 		v8JstypeMoveAfterLoad['native'] += longestTouchMovesAfterLoad[i].jsNative['native'];
@@ -205,11 +211,12 @@
 			// if (key.indexOf('V8.Execute') > -1)
 // 				v8ExcuteMove.push(longestTouchMoves[i].selfTime[key]);
 		}
-		for (var key in longestTouchMovesBeforeLoad[i].nativeFunc) {
+		for (var key in longestTouchMovesBeforeLoad[i].nativeName) {
+			console.log('longestTouchMovesBeforeLoad ' + key+ ' ' + longestTouchMovesBeforeLoad[i].nativeName[key]);
 			if (key in v8ExcuteMoveBeforeLoad) {
-			  v8ExcuteMoveBeforeLoad[key] += longestTouchMovesBeforeLoad[i].nativeFunc[key];
+			  v8ExcuteMoveBeforeLoad[key] += longestTouchMovesBeforeLoad[i].nativeName[key];
 			} else {
-			  v8ExcuteMoveBeforeLoad[key] = longestTouchMovesBeforeLoad[i].nativeFunc[key];
+			  v8ExcuteMoveBeforeLoad[key] = longestTouchMovesBeforeLoad[i].nativeName[key];
 			}
 		}
 		v8JstypeMoveBeforeLoad['native'] += longestTouchMovesBeforeLoad[i].jsNative['native'];
