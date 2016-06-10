@@ -32,6 +32,10 @@ tr.exportTo('pi.m', function() {
   } 
   	
   function getV8ExecuteDomain(slice, jsNative, jsSource, nativeName) {
+<<<<<<< HEAD
+=======
+	// var samples = slice.parentContainer.samples;
+>>>>>>> c00174ca125bf2158238fee8fbfaa6c047f2a57e
 	var range = new tr.b.Range();
 	slice.addBoundsToRange(range);
 	var filtered = range.filterArray(
@@ -60,7 +64,12 @@ tr.exportTo('pi.m', function() {
 			  pageDomain = parentFrame.domain;
 			  parentFrame = parentFrame.parentFrame;
 		  }
+<<<<<<< HEAD
 
+=======
+		  //console.log('pageDomain ' + pageDomain);
+		  // console.log("isNative " + isNative + " funct " + title[0]);  
+>>>>>>> c00174ca125bf2158238fee8fbfaa6c047f2a57e
 	  	  var fname = title[0];
 		  if (isNative && (fname!=null && fname!='')) {	  	
 				fname = title[0] + 'abc';
@@ -68,7 +77,13 @@ tr.exportTo('pi.m', function() {
 				  nativeName[fname] += 1;
 				else
 				  nativeName[fname] = 1;
+<<<<<<< HEAD
 			  	jsNative['native']++;			
+=======
+			  	jsNative['native']++;
+			
+				console.log('nativeName ' + fname + ' --- ' + nativeName[fname]);
+>>>>>>> c00174ca125bf2158238fee8fbfaa6c047f2a57e
 		  } else
 			jsNative['nonnative']++;
 		  if (domain == pageDomain)
@@ -88,8 +103,8 @@ tr.exportTo('pi.m', function() {
 	                nonnative: 0};
 	var jsSource = {firstParty: 0,
 	                thirdParty: 0};
-	var nativeName = {};    
-	
+	var nativeName = {};
+    
 	model.flowEvents.forEach(function(flow) {
 	    // Follow the FlowEvent whichs connects the touchmove and EventHandler.
 		if (flow.args.trace_id == id) {
