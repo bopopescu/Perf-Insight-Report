@@ -158,14 +158,21 @@ tr.exportTo('pi.m', function() {
 			var jsSource = {firstParty: 0,
 			                thirdParty: 0};
 			var nativeName = {};
+			console.log('Time range ' + data.webviewTimes[i].start + ' ' + data.touchMoveTimes[i]);
 			renderMainThread.sliceGroup.slices.forEach(function(slice) {
-				var sliceEndTime = slice.start + slice.selfTime;
-				if (sliceEndTime > data.touchMoveTimes[i] && sliceEndTime <= data.webviewTimes[i].start) {
-					console.log(slice.title + '   ' + sliceEndTime);
+				var sliceEndTime = slice.start + slice.duration;
+				if (slice.start < data.webviewTimes[i].start && sliceEndTime > data.touchMoveTimes[i]) {
+				  var start = (data.touchMoveTimes[i] > slice.start) ? data.touchMoveTimes[i] : slice.start;
+				  var end = (data.webviewTimes[i].start < sliceEndTime) ? data.webviewTimes[i].start : sliceEndTime;
+				  var ratio = (end - start) / slice.duration;
+				  var realSelfTime = ratio * slice.selfTime;
+					
+					console.log(slice.title + '  start ' + slice.start + ' end ' + sliceEndTime + ' real ' + realSelfTime +' self ' + slice.selfTime);
+					
 					if (slice.title in handlers) {
-						handlers[slice.title] += slice.selfTime;
+						handlers[slice.title] += realSelfTime;
 					} else {
-						handlers[slice.title] = slice.selfTime;
+						handlers[slice.title] = realSelfTime;
 					}
 					if (slice.title == 'V8.Execute') {
 				      getV8ExecuteDomain(slice, jsNative, jsSource, nativeName);
@@ -183,6 +190,7 @@ tr.exportTo('pi.m', function() {
 	  	    };
 			queuingTime.push(value);
 		}
+		console.log(' queuingTime ' + queuingTime.length);
 		return queuingTime;
 	}
 

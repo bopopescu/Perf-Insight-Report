@@ -11,9 +11,9 @@
 
 tr.exportTo('pi.m', function() {
   function mergeTwoMapsFunction(result, model) {
-	//var handlingTime = pi.m.handlingTimeMapFunction(model);
+	// var handlingTime = pi.m.handlingTimeMapFunction(model);
 	var queuingTime = pi.m.queuingTimeMapFunction(model);
-	//result.addPair('handling_self_time', handlingTime);
+	// result.addPair('handling_self_time', handlingTime);
 	result.addPair('queuing_self_time', queuingTime);
   }
 
